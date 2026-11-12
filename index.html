@@ -1199,7 +1199,13 @@ let IMP=[];
 let PM={q:[],i:0,hist:[],mode:"proc"};
 function pmOpen(){PM.mode="proc";$("#pm-t").textContent="¿Cómo llegó?";const ord=(a,b)=>FAM_ORDER.indexOf(FAM(a))-FAM_ORDER.indexOf(FAM(b))||a.tipo.localeCompare(b.tipo,"es")||a.n-b.n;
   // primero las que ya tienen procedencia (para revisarlas), agrupadas por categoría; luego las que faltan
-  PM.q=[...D.filter(d=>PROC(d)).sort((a,b)=>PROC_NAMES.indexOf(PROC(a))-PROC_NAMES.indexOf(PROC(b))||ord(a,b)),...D.filter(d=>!PROC(d)).sort(ord)].map(d=>d.id);PM.i=0;PM.hist=[];$("#pm").hidden=false;document.body.style.overflow="hidden";pmDraw();}
+  const faltan=D.filter(d=>!PROC(d)).sort(ord),tienen=D.filter(d=>PROC(d)).sort((a,b)=>PROC_NAMES.indexOf(PROC(a))-PROC_NAMES.indexOf(PROC(b))||ord(a,b));
+  const go=list=>{PM.q=list.map(d=>d.id);PM.i=0;PM.hist=[];pmDraw();};
+  $("#pm").hidden=false;document.body.style.overflow="hidden";
+  $("#pmBody").innerHTML=`<p class="muted" style="margin:0 0 14px">¿Qué quieres repasar?</p><div class="pm-opts" style="grid-template-columns:repeat(2,1fr)">
+    <button class="pm-o" id="pmFaltan" ${faltan.length?"":"disabled"}><kbd>1</kbd><b>Solo las que faltan</b><span>${faltan.length} ${faltan.length===1?"pieza":"piezas"} sin procedencia</span></button>
+    <button class="pm-o" id="pmTodas"><kbd>2</kbd><b>Revisar todas</b><span>${D.length} piezas: primero las que ya tienen, agrupadas por categoría, y luego las que faltan</span></button></div>`;
+  $("#pmFaltan").onclick=()=>go(faltan);$("#pmTodas").onclick=()=>go([...tienen,...faltan]);PM.q=[];PM.elige=[faltan,[...tienen,...faltan]];}
 function pmClose(){$("#pm").hidden=true;document.body.style.overflow="";P.sig="";render();}
 function pmDraw(){
   const id=PM.q[PM.i],d=id&&D.find(x=>x.id===id),b=$("#pmBody");
@@ -1268,7 +1274,7 @@ async function ymBack(){
 }
 $("#anioBtn").onclick=ymOpen;$("#pmClose").onclick=pmClose;
 $("#pm").addEventListener("keydown",e=>{if(e.key==="Escape")pmClose();});
-document.addEventListener("keydown",e=>{if($("#pm").hidden||PM.mode!=="proc"||e.target.id==="pmDe")return;const id=PM.q[PM.i],d=id&&D.find(x=>x.id===id);if(!d)return;
+document.addEventListener("keydown",e=>{if($("#pm").hidden||PM.mode!=="proc"||e.target.id==="pmDe")return;if(!PM.q.length&&PM.elige){if(e.key==="1"&&PM.elige[0].length){e.preventDefault();$("#pmFaltan").click();}if(e.key==="2"){e.preventDefault();$("#pmTodas").click();}return;}const id=PM.q[PM.i],d=id&&D.find(x=>x.id===id);if(!d)return;
   const k=+e.key;if(k>=1&&k<=PROCS.length){e.preventDefault();pmSet(d,PROCS[k-1][0]);}
   else if(e.key==="ArrowRight"){e.preventDefault();PM.i++;pmDraw();}else if(e.key==="ArrowLeft"||e.key==="Backspace"){e.preventDefault();pmBack();}},true);
 function impOpen(){$("#imp").hidden=false;document.body.style.overflow="hidden";impStart();}
