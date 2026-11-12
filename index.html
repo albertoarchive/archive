@@ -1548,11 +1548,23 @@ const AU={ctx:null,master:null,rev:null,on:true,n:new Map(),hover:null,calm:1,st
     this.rev=c.createConvolver();const len=c.sampleRate*3,b=c.createBuffer(2,len,c.sampleRate);for(let ch=0;ch<2;ch++){const d=b.getChannelData(ch);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2.6);}
     this.rev.buffer=b;this.rev.connect(this.master);},
   start(){this.init();if(!this.ctx)return;this.ctx.resume();this.started=true;this.calm=0;this.master.gain.setTargetAtTime(this.on?1:0,this.ctx.currentTime,1.2);this.update();},
-  node(d){let x=this.n.get(d.id);if(x&&x.src===d.sonido)return x;if(x){x.el.pause();x.el.src="";}
-    const c=this.ctx,el=new Audio(src(d.sonido));el.loop=true;el.preload="metadata";
-    const s0=c.createMediaElementSource(el),lp=c.createBiquadFilter(),g=c.createGain(),dry=c.createGain(),wet=c.createGain();
-    lp.type="lowpass";g.gain.value=0;s0.connect(lp);lp.connect(g);g.connect(dry);g.connect(wet);dry.connect(this.master);wet.connect(this.rev);
-    x={el,lp,g,dry,wet,src:d.sonido,t:0};this.n.set(d.id,x);return x;},
+  /* Cada sonido se descarga y se decodifica una vez (Web Audio): así suena en cualquier navegador, también al pasar el ratón, sin esperar a un clic */
+  node(d){let x=this.n.get(d.id);if(x&&x.src===d.sonido)return x;if(x)this.stop(x);
+    const c=this.ctx,lp=c.createBiquadFilter(),g=c.createGain(),dry=c.createGain(),wet=c.createGain();
+    lp.type="lowpass";g.gain.value=0;lp.connect(g);g.connect(dry);g.connect(wet);dry.connect(this.master);wet.connect(this.rev);
+    x={lp,g,dry,wet,src:d.sonido,buf:null,s:null,el:null,t:0,want:0};this.n.set(d.id,x);this.load(x);return x;},
+  load(x){if(x.loading||x.buf||x.el)return;x.loading=true;const u=src(x.src);
+    fetch(u).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer();}).then(ab=>new Promise((ok,ko)=>{const p=this.ctx.decodeAudioData(ab,ok,ko);if(p&&p.then)p.then(ok,ko);}))
+      .then(b=>{x.buf=b;x.loading=false;if(x.want)this.play(x,x.want===2);})
+      .catch(()=>{x.loading=false; // si no se puede decodificar (p. ej. webm en Safari), elemento de audio como antes
+        const el=new Audio(u);el.loop=true;el.crossOrigin="anonymous";try{this.ctx.createMediaElementSource(el).connect(x.lp);}catch(e){}x.el=el;if(x.want)this.play(x,x.want===2);});},
+  play(x,desdeCero){clearTimeout(x.t);
+    if(x.el){if(desdeCero){try{x.el.currentTime=0}catch(e){}}if(x.el.paused)x.el.play().catch(()=>{});return;}
+    if(!x.buf){x.want=desdeCero?2:Math.max(x.want,1);return;}x.want=0;
+    if(x.s&&!desdeCero)return;if(x.s){try{x.s.stop()}catch(e){}}
+    const s=this.ctx.createBufferSource();s.buffer=x.buf;s.loop=true;s.connect(x.lp);s.start(0,0);x.s=s;},
+  stop(x){clearTimeout(x.t);x.want=0;if(x.s){try{x.s.stop()}catch(e){}x.s=null;}if(x.el&&!x.el.paused)x.el.pause();},
+  sonando(x){return !!(x.s||(x.el&&!x.el.paused));},
   update(){if(!this.started||!this.ctx)return;const c=this.ctx,t=c.currentTime;
     const vis=visiblesIds(),act=new Set(filtered().filter(d=>d.sonido&&(!vis||vis.has(d.id)||this.hover===d.id)).map(d=>d.id)),con=D.filter(d=>d.sonido&&(act.has(d.id)||this.n.has(d.id)));
     const nAct=Math.max(1,act.size),abr=1-this.calm; // abrumación: al entrar todo fuerte, se calma al moverte y con el tiempo
@@ -1562,9 +1574,9 @@ const AU={ctx:null,master:null,rev:null,on:true,n:new Map(),hover:null,calm:1,st
       const clar=Math.min(1,v*(I==null?.85:.6+.4*I/100)+(solo?.25:0));
       x.g.gain.setTargetAtTime(vol*mix,t,.35);x.lp.frequency.setTargetAtTime(250+17000*Math.pow(clar,2),t,.3);
       x.dry.gain.setTargetAtTime(.35+.65*v,t,.4);x.wet.gain.setTargetAtTime((1-v)*.9+abr*.3,t,.4);
-      if(solo&&this.lastSolo!==d.id){try{x.el.currentTime=0;}catch(e){}}
-      if(mix>0&&x.el.paused){x.el.play().catch(()=>{});}
-      if(mix===0&&!x.el.paused){clearTimeout(x.t);x.t=setTimeout(()=>{if(x.g.gain.value<.002)x.el.pause();},2500);}});
+      if(solo&&this.lastSolo!==d.id)this.play(x,true);
+      else if(mix>0&&!this.sonando(x))this.play(x,false);
+      if(mix===0&&this.sonando(x)){clearTimeout(x.t);x.t=setTimeout(()=>{if(x.g.gain.value<.002)this.stop(x);},2500);}});
     this.lastSolo=this.hover;
   },
   setOn(on){this.on=on;$("#sndBtn").setAttribute("aria-pressed",on);if(this.ctx)this.master.gain.setTargetAtTime(on&&this.started?1:0,this.ctx.currentTime,.3);try{localStorage.setItem("arch-snd",on?"1":"0")}catch(e){}},
