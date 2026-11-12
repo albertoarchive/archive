@@ -91,7 +91,7 @@ details.sec>summary.sec-t{display:flex;align-items:center;justify-content:space-
 .sec-t.big{display:flex;align-items:center;justify-content:space-between;font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:8px 8px}
 #d-fil[open]>summary{margin-bottom:6px}
 .sec{padding:12px 6px 4px;border-top:1px solid var(--line);margin-top:8px}
-#d-sel>.sec:first-of-type{border-top:0}
+#d-sel>.sec:first-of-type{margin-top:12px}
 .sec-t{font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .rows{display:flex;flex-direction:column}
 .rows button{display:flex;align-items:center;gap:12px;padding:7px 8px;border-radius:8px;text-align:left;font-size:16px;line-height:1.2}
@@ -394,6 +394,50 @@ body.ui-off main{padding-left:var(--pad)}
   .br kbd{display:none}
   .row2{grid-template-columns:1fr}
 }
+
+/* ---------- Panel lateral: estructura Ver / Filtrar / Edición ---------- */
+.side{gap:8px}
+.side-head{gap:10px}
+.side-head .head-n{margin-left:auto;font-size:11px;white-space:nowrap}
+.blk{padding:6px 10px 12px}
+.blk>summary.sec-t.big,.blk>.sec-t.big{padding:8px 2px 10px;margin:0;color:var(--fg);letter-spacing:.1em}
+#d-fil[open]>summary,#d-ver[open]>summary{margin-bottom:0}
+.grid2{gap:12px 10px;padding:0}
+.grid2.one{grid-template-columns:1fr;margin-top:12px}
+.grid2 label,.flab{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.04em;color:var(--muted)}
+.grid2 select{-webkit-appearance:none;appearance:none;height:34px;padding:0 28px 0 10px;border-radius:8px;font-size:12.5px;cursor:pointer;
+  background:var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5l3 3 3-3' fill='none' stroke='%23888' stroke-width='1.4'/%3E%3C/svg%3E") no-repeat right 9px center/12px}
+.grid2 select:hover,.colbtn:hover{border-color:var(--muted)}
+.colbtn{height:34px;border-radius:8px;font-size:12.5px;padding:0 10px;box-sizing:border-box}
+.fila{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px}
+.side .seg{background:var(--chip);padding:2px;border-radius:8px;gap:0}
+.side .seg button{padding:5px 12px;border-radius:6px;background:none;font-family:var(--f-mono);font-size:11.5px;color:var(--muted)}
+.side .seg button[aria-pressed="true"]{background:var(--bg);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.switch{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);cursor:pointer}
+#f-groupwrap .switch{border-top:0;padding-top:0}
+.switch>span{display:flex;flex-direction:column;gap:2px;min-width:0}
+.switch b{font-weight:500;font-size:14px}
+.switch small{font-family:var(--f-mono);font-size:10.5px;color:var(--muted);line-height:1.35}
+.switch input{-webkit-appearance:none;appearance:none;flex:none;width:34px;height:20px;border-radius:999px;background:var(--line);position:relative;margin:0;cursor:pointer;transition:background .15s}
+.switch input::before{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+.switch input:checked{background:var(--fg)}
+.switch input:checked::before{transform:translateX(14px)}
+.switch input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#d-sel .sec{padding:12px 0 4px}
+#d-sel details.sec>summary.sec-t{margin-left:2px}
+#d-sel .def{margin:-2px 2px 8px}
+.edtools{display:flex;flex-direction:column;gap:2px}
+.edtools:not(:has(.procbtn:not([hidden]))){display:none}
+.edtools .procbtn{padding:8px 6px;border-radius:8px;font-size:14px;background:none}
+.edtools .procbtn:hover{background:var(--chip)}
+@media (max-width:860px){
+  #aboutBtn{white-space:nowrap}
+  .bl{gap:10px;padding:6px 10px}
+  .bl .scalebar{display:none}
+  .br{padding:6px 10px}
+  .br #uiHide,.br #uiHide+*,.br .muted{display:none}
+  #zOut,#zIn,#zPct{display:none}
+}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -416,38 +460,30 @@ body.ui-off main{padding-left:var(--pad)}
 <button class="corner ibtn" id="sideShow" style="left:var(--pad);top:calc(env(safe-area-inset-top,0px) + 14px)" aria-controls="side" aria-expanded="false" hidden><svg viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg><span>Filtros</span><span class="mono muted" id="sidecount"></span></button>
 
 <aside class="side" id="side" aria-label="Navegación del archivo">
-  <div class="card2 side-head"><span class="brand">archivo<span>.</span>personal</span><button class="mono muted" id="sideHide" aria-label="Plegar panel">Plegar ‹</button></div>
-
+  <div class="card2 side-head"><span class="brand">archivo<span>.</span>personal</span><span class="mono muted head-n"><span id="count"></span> piezas</span><button class="mono muted" id="sideHide" aria-label="Plegar panel">Plegar ‹</button></div>
 
   <div class="card2 pad activos" id="activos" hidden><div class="act-h"><span class="mono" id="actN"></span><button class="mono" id="clearAll">Limpiar todo</button></div><div class="act-chips" id="actChips"></div></div>
-  <details class="card2 pad" id="d-sel" open>
-    <summary class="sel"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 15l5-5 4 4 3-3 4 4"/></svg><span>Selección</span><span class="n" id="count"></span><span class="chev" aria-hidden="true"></span></summary>
-    <details class="sec" id="d-tipo" open><summary class="sec-t">Tipo<span class="chev" aria-hidden="true"></span></summary><p class="def">Qué objeto es. Los tipos van juntos por familias: cada familia es un libro y, dentro, el tipo distingue.</p><div class="rows" id="f-tipo"></div></details>
-    <details class="sec" id="d-ambito" open><summary class="sec-t">Ámbito<span class="chev" aria-hidden="true"></span></summary><p class="def">El tema. Lista cerrada; cada pieza tiene al menos uno y son las etiquetas del libro.</p><div class="rows small" id="f-ambito"></div></details>
-    <details class="sec" id="d-ancla" open><summary class="sec-t">Anclas<span class="chev" aria-hidden="true"></span></summary><p class="def">Lo concreto a lo que se agarra el recuerdo: un museo, una marca, una saga, un equipo. Une piezas de tipos distintos.</p>
-      <label class="finput"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg><input id="aq" type="search" placeholder="Filtrar anclas" autocomplete="off"></label>
-      <div class="rows small scroll" id="f-ancla"></div></details>
-    <details class="sec" id="d-sent" open><summary class="sec-t">Sentimientos<span class="chev" aria-hidden="true"></span></summary><p class="def">Lo que despierta cada pieza, con su intensidad. Lista abierta: las palabras aparecen al usarlas.</p>
-      <div class="rows small scroll" id="f-sent"></div></details>
+
+  <details class="card2 pad blk" id="d-ver" open>
+    <summary class="sec-t big">Ver<span class="chev" aria-hidden="true"></span></summary>
+    <div class="grid2">
+      <label>Orden<select id="f-orden"></select></label>
+      <label>Escala<select id="f-size"></select></label>
+    </div>
+    <div class="fila"><span class="flab">Disposición</span><span class="seg" id="f-disp"><button data-d="lienzo">Lienzo</button><button data-d="reticula">Retícula</button></span></div>
+    <div id="f-groupwrap"></div>
+    <div class="grid2 one"><label>Desvanecimiento según el recuerdo<select id="f-fade"></select></label></div>
+    <label class="switch"><span><b>Catalejo</b><small>Al mirar una pieza, el resto se desenfoca</small></span><input type="checkbox" id="f-cata" checked role="switch"></label>
   </details>
 
-  <button class="card2 pad procbtn" id="partesBtn" hidden><span>Elegir partes de los sonidos</span><span class="mono n" id="partesN"></span></button>
-  <button class="card2 pad procbtn" id="sndUp" hidden><span>Subir sonidos</span><span class="mono n" id="sndUpN"></span></button><input type="file" id="sndIn" multiple accept="audio/*,video/webm,video/mp4" hidden>
-  <button class="card2 pad procbtn" id="anioBtn" hidden><span>Rellenar años</span><span class="mono n" id="anioBtnN"></span></button>
-  <button class="card2 pad procbtn" id="procBtn" hidden><span>Revisar procedencia</span><span class="mono n" id="procBtnN"></span></button>
-  <details class="card2 pad" id="d-fil" open>
-    <summary class="sec-t big">Filtrar y ordenar<span class="chev" aria-hidden="true"></span></summary>
+  <details class="card2 pad blk" id="d-fil" open>
+    <summary class="sec-t big">Filtrar<span class="chev" aria-hidden="true"></span></summary>
     <div class="grid2">
       <label>Año<select id="f-anio"></select></label>
       <label>Lugar<select id="f-lugar"></select></label>
       <label>Procedencia<select id="f-proc"></select></label>
       <label>Color<button type="button" class="colbtn" id="colBtn" aria-haspopup="dialog" aria-expanded="false"><i id="colSw"></i><span id="colTxt">Cualquiera</span></button></label>
-      <label>Orden<select id="f-orden"></select></label>
-      <label>Escala<select id="f-size"></select></label>
-      <label style="grid-column:1/-1">Desvanecimiento según el recuerdo<select id="f-fade"></select></label>
-      <label class="check mono" style="grid-column:1/-1"><input type="checkbox" id="f-cata" checked> Catalejo: al mirar una pieza, el resto se desenfoca</label>
     </div>
-    <div class="dispsw mono"><span class="muted">Disposición</span><span class="seg" id="f-disp"><button data-d="lienzo">Lienzo</button><button data-d="reticula">Retícula</button></span></div>
     <div id="colpop" class="colpop" hidden role="dialog" aria-label="Filtrar por color">
       <div class="sv" id="sv"><i id="svDot"></i></div>
       <div class="hue" id="hue"><i id="hueDot"></i></div>
@@ -456,8 +492,24 @@ body.ui-off main{padding-left:var(--pad)}
       <label class="tolrow mono">Precisión<input type="range" id="tol" min="8" max="45" step="1"><span id="tolV"></span></label>
       <div class="actions" style="padding:0"><button type="button" class="btn" id="colClear">Quitar color</button><button type="button" class="btn primary" id="colOk">Listo</button></div>
     </div>
-    <div id="f-groupwrap" style="padding:10px 4px 0"></div>
+    <div id="d-sel">
+    <details class="sec" id="d-tipo" open><summary class="sec-t">Tipo<span class="chev" aria-hidden="true"></span></summary><p class="def">Qué objeto es. Los tipos van juntos por familias: cada familia es un libro y, dentro, el tipo distingue.</p><div class="rows" id="f-tipo"></div></details>
+    <details class="sec" id="d-ambito" open><summary class="sec-t">Ámbito<span class="chev" aria-hidden="true"></span></summary><p class="def">El tema. Lista cerrada; cada pieza tiene al menos uno y son las etiquetas del libro.</p><div class="rows small" id="f-ambito"></div></details>
+    <details class="sec" id="d-ancla" open><summary class="sec-t">Anclas<span class="chev" aria-hidden="true"></span></summary><p class="def">Lo concreto a lo que se agarra el recuerdo: un museo, una marca, una saga, un equipo. Une piezas de tipos distintos.</p>
+      <label class="finput"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg><input id="aq" type="search" placeholder="Filtrar anclas" autocomplete="off"></label>
+      <div class="rows small scroll" id="f-ancla"></div></details>
+    <details class="sec" id="d-sent" open><summary class="sec-t">Sentimientos<span class="chev" aria-hidden="true"></span></summary><p class="def">Lo que despierta cada pieza, con su intensidad. Lista abierta: las palabras aparecen al usarlas.</p>
+      <div class="rows small scroll" id="f-sent"></div></details>
+    </div>
   </details>
+
+  <div class="card2 pad blk edtools" id="d-edit">
+    <div class="sec-t big">Edición</div>
+    <button class="procbtn" id="partesBtn" hidden><span>Elegir partes de los sonidos</span><span class="mono n" id="partesN"></span></button>
+  <button class="procbtn" id="sndUp" hidden><span>Subir sonidos</span><span class="mono n" id="sndUpN"></span></button><input type="file" id="sndIn" multiple accept="audio/*,video/webm,video/mp4" hidden>
+  <button class="procbtn" id="anioBtn" hidden><span>Rellenar años</span><span class="mono n" id="anioBtnN"></span></button>
+  <button class="procbtn" id="procBtn" hidden><span>Revisar procedencia</span><span class="mono n" id="procBtnN"></span></button>
+  </div>
 </aside>
 
 <div class="corner bl">
@@ -678,7 +730,7 @@ function renderFilters(){
   $("#dispBtn").innerHTML=S.disp==="lienzo"?'<svg viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1"/></svg>':'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="7" height="9" rx="1"/><rect x="12" y="3" width="9" height="6" rx="1"/><rect x="12" y="11" width="6" height="9" rx="1"/><rect x="4" y="16" width="5" height="4" rx="1"/></svg>';
   $("#dispBtn").hidden=S.view!=="galeria";
   const g=groupKey(), ret=S.view==="galeria"&&S.disp==="reticula";
-  $("#f-groupwrap").innerHTML=(g&&ret?`<label class="check mono"><input type="checkbox" id="f-group" ${S.group?"checked":""}> Separar por ${g==="tipo"?"tipo":"ámbito"}</label>`:"");
+  $("#f-groupwrap").innerHTML=(g&&ret?`<label class="switch"><span><b>Separar por ${g==="tipo"?"tipo":"ámbito"}</b></span><input type="checkbox" id="f-group" role="switch" ${S.group?"checked":""}></label>`:"");
   if($("#f-group")) $("#f-group").onchange=e=>{S.group=e.target.checked;render();};
   ["tipo","ambito","ancla"].forEach(k=>$("#dl-"+k).innerHTML=[...countBy(k).keys()].sort((a,b)=>a.localeCompare(b,"es")).map(v=>`<option value="${esc(v)}">`).join(""));
 }
@@ -830,7 +882,7 @@ function renderScalebar(){
 function render(){
   renderFilters();
   const r=filtered();
-  $("#count").textContent=r.length===D.length?String(D.length):`${r.length} / ${D.length}`;
+  $("#count").textContent=r.length===D.length?String(D.length):`${r.length} de ${D.length}`;
   $("#sidecount").textContent=r.length;
   renderActivos();
   document.querySelectorAll(".views button").forEach(b=>b.setAttribute("aria-current",b.dataset.view===S.view));
