@@ -1636,7 +1636,7 @@ const assetsWeb={async upload(blob,opt={}){
   return {id,url:LOCALURL.get(id),contentType:t,sizeBytes:blob.size};}};
 
 /* Entrar / salir */
-async function entrar(clave){const r=await fetch(FN,{headers:{"x-clave":clave},cache:"no-store"});
+async function loginWeb(clave){const r=await fetch(FN,{headers:{"x-clave":clave},cache:"no-store"});
   if(r.status===401)throw new Error("Contraseña incorrecta");if(!r.ok)throw new Error("No se pudo conectar ("+r.status+")");return r.json();}
 function activar(){canEdit=true;assets=assetsWeb;$("#addBtn").hidden=false;$("#syncBtn").hidden=false;$("#loginBtn").textContent="Salir";document.body.classList.add("editor");P.sig="";render();}
 function salir(){CLAVE=null;try{localStorage.removeItem("arch-clave")}catch(e){}canEdit=false;assets=null;$("#addBtn").hidden=true;$("#syncBtn").hidden=true;$("#loginBtn").textContent="Entrar";document.body.classList.remove("editor");if(!$("#ficha").hidden)drawFicha();render();}
@@ -1648,7 +1648,7 @@ function loginForm(){
   document.body.appendChild(f);$("#wClave").focus();
   f.onkeydown=e=>{if(e.key==="Escape")f.remove();};
   f.onsubmit=async e=>{e.preventDefault();const c=$("#wClave").value;$("#wMsg").textContent="Comprobando…";
-    try{const d=await entrar(c);CLAVE=c;try{localStorage.setItem("arch-clave",c)}catch(_){}cargar(d);f.remove();activar();}
+    try{const d=await loginWeb(c);CLAVE=c;try{localStorage.setItem("arch-clave",c)}catch(_){}cargar(d);f.remove();activar();}
     catch(err){$("#wMsg").textContent=err.message;}};
 }
 $("#loginBtn").onclick=loginForm;
@@ -1660,7 +1660,7 @@ db.collection("piezas").onSnapshot(snap=>{
   if(!editing){render();if(!$("#ficha").hidden&&cur())drawFicha();}
 },()=>{});
 fetch("data.json",{cache:"no-store"}).then(r=>r.json()).then(d=>{if(!STORE.size)cargar(d);
-  if(CLAVE)entrar(CLAVE).then(f=>{cargar(f);activar();}).catch(e=>{if(/incorrecta/.test(e.message))salir();});
+  if(CLAVE)loginWeb(CLAVE).then(f=>{cargar(f);activar();}).catch(e=>{if(/incorrecta/.test(e.message))salir();});
 }).catch(()=>{$("#main").innerHTML='<p class="empty">No se pudo cargar el archivo. Recarga la página.</p>';});
 </script>
 
