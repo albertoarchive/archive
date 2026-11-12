@@ -438,6 +438,86 @@ body.ui-off main{padding-left:var(--pad)}
   .br #uiHide,.br #uiHide+*,.br .muted{display:none}
   #zOut,#zIn,#zPct{display:none}
 }
+
+/* ================= Capa editorial: plano, filetes finos, una sola familia ================= */
+:root{--f-mono:var(--f-ui);--line:#e2e2df;--rule:#141414}
+.mono{font-family:var(--f-ui);letter-spacing:0;font-variant-numeric:tabular-nums}
+body{font-size:13px}
+/* superficies sin sombras ni esquinas redondeadas */
+.card2,.corner,.ibtn,.views,.toast,.about,.uishow{box-shadow:none!important;border-radius:0!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+/* vistas: texto plano, la activa en negro */
+.views{background:var(--bg);padding:0;gap:16px;top:calc(env(safe-area-inset-top,0px) + 18px)}
+.views button{padding:0 0 2px;border-radius:0;font-size:13px;color:var(--muted);border-bottom:1px solid transparent}
+.views button[aria-current="true"]{background:none;color:var(--fg);border-bottom-color:var(--fg)}
+.views button:hover{color:var(--fg)}
+.topr{top:calc(env(safe-area-inset-top,0px) + 12px)}
+.ibtn{background:var(--bg);height:30px;min-width:30px;padding:0 6px}
+.ibtn:hover{background:var(--bg);opacity:.6}
+.searchbox input{border-radius:0!important}
+/* panel lateral como columna de texto */
+.side{background:var(--bg);gap:0;padding:0 2px 16px;top:calc(env(safe-area-inset-top,0px) + 12px);width:296px}
+.side .card2{background:none;border-radius:0}
+.side-head{padding:6px 0 14px}
+.brand{font-weight:500;font-size:15px;letter-spacing:-.015em}
+.brand span{color:inherit}
+.blk{padding:0 0 18px}
+.blk>summary.sec-t.big,.blk>.sec-t.big{border-top:1px solid var(--rule);padding:7px 0 8px;font-family:var(--f-ui);font-size:11px;letter-spacing:.06em;color:var(--fg)}
+.side .grid2{grid-template-columns:1fr;gap:0}
+.side .grid2 label{flex-direction:row;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding:0;min-height:32px;font-size:13px;letter-spacing:0;font-family:var(--f-ui)}
+.side .grid2.one{margin-top:0}
+.side .grid2 select,.side .colbtn{border:0;background-color:transparent;height:32px;width:auto;max-width:62%;padding:0 18px 0 0;text-align:right;text-align-last:right;font-family:var(--f-ui);font-size:13px;border-radius:0;background-position:right 0 center}
+.side .colbtn{padding:0;justify-content:flex-end}
+.side .grid2 select:hover,.side .colbtn:hover{opacity:.6}
+.fila{margin-top:0;min-height:32px;border-bottom:1px solid var(--line)}
+.flab{font-family:var(--f-ui);font-size:13px;letter-spacing:0}
+.side .seg{background:none;padding:0;gap:10px}
+.side .seg button{padding:0 0 1px;border-radius:0;font-family:var(--f-ui);font-size:13px;border-bottom:1px solid transparent}
+.side .seg button[aria-pressed="true"]{background:none;box-shadow:none;border-bottom-color:var(--fg)}
+.switch{margin-top:0;padding:8px 0;border-top:0;border-bottom:1px solid var(--line)}
+.switch b{font-size:13px;font-weight:400}
+.switch small{font-family:var(--f-ui);font-size:12px}
+.switch input{width:28px;height:16px}
+.switch input::before{width:12px;height:12px}
+.switch input:checked::before{transform:translateX(12px)}
+#d-sel .sec{border-top:1px solid var(--line);padding:8px 0 4px;margin-top:0}
+#d-sel>.sec:first-of-type{margin-top:18px;border-top:1px solid var(--rule)}
+.sec-t{font-family:var(--f-ui);font-size:11px;letter-spacing:.06em;color:var(--fg)}
+#d-sel .def{font-size:12px;margin:0 0 8px}
+.finput{border-radius:0!important;border-width:0 0 1px!important}
+.edtools .procbtn{border-bottom:1px solid var(--line);border-radius:0;padding:8px 0;font-size:13px}
+.edtools .procbtn:hover{background:none;opacity:.6}
+.procbtn .n{background:none;color:var(--muted);padding:0;font-size:12px}
+/* esquinas de abajo: texto plano */
+.bl,.br{background:var(--bg);padding:4px 0}
+.zoomer button{background:none;border-radius:0;font-size:13px;min-width:22px;height:22px}
+.zoomer button:hover{background:none;opacity:.6}
+.zoomer #zMin[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+/* lista como índice */
+.ltable th,.ltable th button{font-family:var(--f-ui)}
+/* portada: marca a todo el ancho */
+.umbral{display:block}
+.u-in{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;text-align:left;padding:14px var(--padr) 0 var(--pad);gap:0;justify-items:stretch}
+.u-fila{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;border-top:1px solid var(--rule);padding-top:8px;font-size:13px;line-height:1.35}
+.u-fila p{margin:0}
+.u-t{font-size:13px;letter-spacing:0;max-width:none;line-height:1.35}
+.u-act{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+#entrar{white-space:nowrap;font-size:13px;padding:0 0 1px;border-bottom:1px solid var(--fg);background:none;color:var(--fg);border-radius:0}
+#entrar:hover{opacity:.6}
+.u-marca{margin:0 -.04em -.06em;font-size:14.3vw;line-height:1;font-weight:500;letter-spacing:-.065em;white-space:nowrap}
+@media (max-width:860px){
+  .u-fila{grid-template-columns:1fr 1fr;row-gap:14px}
+  .u-marca{font-size:13.4vw}
+  .u-act{flex-direction:column;align-items:flex-start;gap:12px}
+  .side{background:var(--bg);padding:12px 14px;border:1px solid var(--rule)}
+}
+
+/* segmentos y etiquetas en todo el sitio: subrayado en vez de bloques */
+.seg{gap:10px}
+.seg button{background:none;border-radius:0;padding:0 0 1px;border-bottom:1px solid transparent;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:none;color:var(--fg);border-bottom-color:var(--fg)}
+.seg button:hover{color:var(--fg)}
+.tags .tag{background:none;border-radius:0;padding:0;font-family:var(--f-ui);font-size:13px;text-decoration:underline!important;text-underline-offset:3px;text-decoration-color:var(--line)!important}
+.tags{gap:10px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -472,7 +552,7 @@ body.ui-off main{padding-left:var(--pad)}
     </div>
     <div class="fila"><span class="flab">Disposición</span><span class="seg" id="f-disp"><button data-d="lienzo">Lienzo</button><button data-d="reticula">Retícula</button></span></div>
     <div id="f-groupwrap"></div>
-    <div class="grid2 one"><label>Desvanecimiento según el recuerdo<select id="f-fade"></select></label></div>
+    <div class="grid2 one"><label title="Cómo se desvanecen las piezas según el recuerdo">Desvanecimiento<select id="f-fade"></select></label></div>
     <label class="switch"><span><b>Catalejo</b><small>Al mirar una pieza, el resto se desenfoca</small></span><input type="checkbox" id="f-cata" checked role="switch"></label>
   </details>
 
@@ -532,7 +612,15 @@ body.ui-off main{padding-left:var(--pad)}
 </div>
 
 <main id="main"><p class="empty">Cargando el archivo…</p></main>
-<div class="umbral" id="umbral" role="dialog" aria-modal="true" aria-labelledby="u-t"><div class="u-in"><p class="mono muted">archivo.personal</p><p class="u-t" id="u-t">Los recuerdos no vuelven todos a la vez.</p><button id="entrar">Entrar</button><p class="mono muted" style="font-size:11px">Mejor con sonido</p></div></div>
+<div class="umbral" id="umbral" role="dialog" aria-modal="true" aria-labelledby="u-t"><div class="u-in">
+  <div class="u-fila">
+    <p class="u-t" id="u-t">Los recuerdos no vuelven todos a la vez.</p>
+    <p><span class="muted">Archivo de objetos pequeños:</span><br>papeles, entradas, pegatinas, recuerdos.</p>
+    <p class="muted">Proyectos Experimentales<br>IED Madrid · 2026</p>
+    <p class="u-act"><span class="muted">Mejor con sonido</span><button id="entrar">Entrar →</button></p>
+  </div>
+  <p class="u-marca" aria-hidden="true">archivo.personal</p>
+</div></div>
 <div class="rq" id="rq" hidden role="dialog" aria-labelledby="rq-q"></div>
 <div class="tk mono" id="tk" hidden></div>
 
