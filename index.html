@@ -1549,7 +1549,9 @@ addEventListener("keydown",e=>{if(e.key==="Escape"&&isMapa()&&MP.abierto!=null&&
    Más intensidad = más alto y más claro; recuerdo débil = apagado, lejano, con eco. */
 const AU={ctx:null,master:null,rev:null,on:true,n:new Map(),hover:null,calm:1,started:false,prev:null,
   init(){if(this.ctx)return;try{this.ctx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){return;}
-    const c=this.ctx;this.master=c.createGain();this.master.gain.value=0;this.master.connect(c.destination);
+    const c=this.ctx;this.master=c.createGain();this.master.gain.value=0;
+    // limitador al final: la suma de muchos sonidos nunca satura
+    const lim=c.createDynamicsCompressor();lim.threshold.value=-8;lim.knee.value=4;lim.ratio.value=14;lim.attack.value=.003;lim.release.value=.25;this.master.connect(lim);lim.connect(c.destination);
     this.rev=c.createConvolver();const len=c.sampleRate*3,b=c.createBuffer(2,len,c.sampleRate);for(let ch=0;ch<2;ch++){const d=b.getChannelData(ch);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2.6);}
     this.rev.buffer=b;this.rev.connect(this.master);},
   start(){this.init();if(!this.ctx)return;this.ctx.resume();this.started=true;this.calm=0;this.master.gain.setTargetAtTime(this.on?1:0,this.ctx.currentTime,1.2);this.update();},
@@ -1577,13 +1579,14 @@ const AU={ctx:null,master:null,rev:null,on:true,n:new Map(),hover:null,calm:1,st
     const peso=d=>{const r=pos.has(d.id)?pos.get(d.id):1;return Math.pow(Math.max(0,1-r),1.6);};
     const suma=Math.max(1,[...act].reduce((a,id)=>a+peso({id}),0));
     con.forEach(d=>{const x=this.node(d),v=viva(d),I=INT(d),solo=this.hover===d.id;
-      const vol=(I==null?.6:.3+.7*I/100)*(.35+.65*v),mem=Math.max(.35,Math.min(1,v*(I==null?.85:.6+.4*I/100))),w=peso(d);
+      const vol=(I==null?.8:.6+.4*I/100)*(.6+.4*v), // todos los audios están igualados a -16 LUFS; esto solo matiza
+        mem=Math.max(.35,Math.min(1,v*(I==null?.85:.6+.4*I/100))),w=peso(d);
       let g,f;
       if(!act.has(d.id)){g=0;f=300;}
       else if(hay){ // con hover: solo esa en primer plano; el resto, lejos y apagado
-        if(solo){g=vol*1.35;f=18000;}else{g=vol*.16*(.25+.75*w);f=260+700*w;}}
+        if(solo){g=vol;f=18000;}else{g=vol*.12*(.3+.7*w);f=250+600*w;}}
       else{ // sin hover: estructura radial, suena más y más nítido lo que está en el centro
-        g=vol*(.06+.94*w)*Math.min(1.4,1.6/Math.sqrt(suma))*(1+.8*abr);f=260+17500*Math.pow(w,2)*mem;}
+        g=vol*(.05+.95*w)*Math.min(1,1.2/Math.sqrt(suma))*(1+.5*abr);f=250+17500*Math.pow(w,2)*mem;}
       x.g.gain.setTargetAtTime(g,t,.25);x.lp.frequency.setTargetAtTime(f,t,.25);
       x.dry.gain.setTargetAtTime(.35+.65*v,t,.4);x.wet.gain.setTargetAtTime((1-v)*.9+abr*.3+(hay&&!solo?.3:0),t,.4);
       if(solo&&this.lastSolo!==d.id)this.play(x,true);
@@ -1680,7 +1683,11 @@ async function encodeTrozo(buf,s,len,prog){
   const mt=["audio/webm;codecs=opus","audio/webm","audio/mp4"].find(m=>window.MediaRecorder&&MediaRecorder.isTypeSupported(m));
   if(!mt)throw "Este navegador no puede preparar el audio. Prueba en Chrome.";
   const c=new (window.AudioContext||window.webkitAudioContext)(),dst=c.createMediaStreamDestination(),n=c.createBufferSource(),g=c.createGain();
-  n.buffer=buf;n.connect(g);g.connect(dst);const t=c.currentTime+.05;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(1,t+Math.min(1,len/4));g.gain.setValueAtTime(1,t+len-Math.min(1.5,len/4));g.gain.linearRampToValueAtTime(0,t+len);
+  // igualar volumen: el trozo elegido se lleva a un nivel medio común (≈ -16 LUFS), con limitador para que no sature
+  let sum=0,cnt=0;const i0=Math.floor(s*buf.sampleRate),i1=Math.min(buf.length,Math.floor((s+len)*buf.sampleRate));for(let ch=0;ch<buf.numberOfChannels;ch++){const dd=buf.getChannelData(ch);for(let i=i0;i<i1;i+=4){sum+=dd[i]*dd[i];cnt++;}}
+  const rmsDb=10*Math.log10(sum/Math.max(1,cnt)+1e-12),K=Math.max(.2,Math.min(6,Math.pow(10,(-19-rmsDb)/20)));
+  const lim=c.createDynamicsCompressor();lim.threshold.value=-2;lim.knee.value=0;lim.ratio.value=20;lim.attack.value=.002;lim.release.value=.1;
+  n.buffer=buf;n.connect(g);g.connect(lim);lim.connect(dst);const t=c.currentTime+.05;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(K,t+Math.min(1,len/4));g.gain.setValueAtTime(K,t+len-Math.min(1.5,len/4));g.gain.linearRampToValueAtTime(0,t+len);
   const rec=new MediaRecorder(dst.stream,{mimeType:mt}),chs=[];rec.ondataavailable=e=>e.data.size&&chs.push(e.data);const fin=new Promise(r=>rec.onstop=r);
   rec.start();n.start(t,s,len);const p0=performance.now(),iv=setInterval(()=>prog&&prog(`${Math.min(Math.round(len),Math.round((performance.now()-p0)/1000))} de ${Math.round(len)} s`),400);
   await new Promise(r=>setTimeout(r,len*1000+250));rec.stop();await fin;clearInterval(iv);c.close();
