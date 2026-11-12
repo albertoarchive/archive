@@ -856,8 +856,10 @@ function clampP(){}
 function applyP(){const m=$("#lzin");if(m)m.style.transform=`translate(${P.x}px,${P.y}px) scale(${P.z})`;drawTiles();renderScalebar();auMover();clearTimeout(applyP.t);applyP.t=setTimeout(nitidez,250);}
 /* Al acercar, las piezas visibles cambian la miniatura por la imagen completa */
 /* Distancia de cada pieza visible al centro de la pantalla (0 centro … 1 esquina); si una pieza sale repetida, cuenta la más cercana */
-function posiciones(){const m=new Map();if(S.view==="mapa"||S.view==="lista")return m;const vw=innerWidth,vh=innerHeight,cx=vw/2,cy=vh/2,R=Math.hypot(cx,cy);
-  document.querySelectorAll("#main .piece").forEach(p=>{const r=p.getBoundingClientRect();if(r.right<0||r.bottom<0||r.left>vw||r.top>vh)return;const d=Math.min(1,Math.hypot(r.left+r.width/2-cx,r.top+r.height/2-cy)/R);const id=p.dataset.id;if(!m.has(id)||d<m.get(id))m.set(id,d);});return m;}
+function posiciones(){const m=new Map();if(S.view==="mapa"||S.view==="lista")return m;const vw=innerWidth,vh=innerHeight,cx=vw/2,cy=vh/2,
+  // el «micrófono» escucha una zona fija del lienzo: al alejar el zoom, el círculo audible se encoge en pantalla
+  R=Math.hypot(cx,cy)*(isLienzo()?Math.min(1,Math.max(.12,P.z)):1);
+  document.querySelectorAll("#main .piece").forEach(p=>{const r=p.getBoundingClientRect();if(r.right<0||r.bottom<0||r.left>vw||r.top>vh)return;const d=Math.hypot(r.left+r.width/2-cx,r.top+r.height/2-cy)/R;if(d>=1)return;const id=p.dataset.id;if(!m.has(id)||d<m.get(id))m.set(id,d);});return m;}
 let auT=0;function auMover(){if(auT)return;auT=setTimeout(()=>{auT=0;if(typeof AU!=="undefined")AU.update();},120);}
 addEventListener("scroll",auMover,{passive:true});
 /* Solo suenan (y se descargan) los sonidos de las piezas que están a la vista */
@@ -1574,7 +1576,10 @@ const AU={ctx:null,master:null,rev:null,on:true,n:new Map(),hover:null,calm:1,st
   sonando(x){return !!(x.s||(x.el&&!x.el.paused));},
   update(){if(!this.started||!this.ctx)return;const c=this.ctx,t=c.currentTime;
     // posición de cada pieza respecto al centro de la pantalla: 0 = centro, 1 = borde
-    const pos=posiciones(),act=new Set(filtered().filter(d=>d.sonido&&(pos.has(d.id)||this.hover===d.id)).map(d=>d.id)),con=D.filter(d=>d.sonido&&(act.has(d.id)||this.n.has(d.id)));
+    // como mucho 6 voces a la vez: las más cercanas al centro (y la del hover)
+    const pos=posiciones(),VOCES=6,cand=filtered().filter(d=>d.sonido&&pos.has(d.id)&&d.id!==this.hover).sort((a,b)=>pos.get(a.id)-pos.get(b.id)).slice(0,this.hover?VOCES-1:VOCES).map(d=>d.id);
+    if(this.hover&&D.some(d=>d.id===this.hover&&d.sonido))cand.push(this.hover);
+    const act=new Set(cand),con=D.filter(d=>d.sonido&&(act.has(d.id)||this.n.has(d.id)));
     const hay=this.hover&&act.has(this.hover),abr=1-this.calm; // abrumación: al entrar todo fuerte, se calma al moverte y con el tiempo
     const peso=d=>{const r=pos.has(d.id)?pos.get(d.id):1;return Math.pow(Math.max(0,1-r),1.6);};
     const suma=Math.max(1,[...act].reduce((a,id)=>a+peso({id}),0));
