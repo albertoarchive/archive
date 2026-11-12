@@ -857,8 +857,8 @@ function applyP(){const m=$("#lzin");if(m)m.style.transform=`translate(${P.x}px,
 /* Al acercar, las piezas visibles cambian la miniatura por la imagen completa */
 /* Distancia de cada pieza visible al centro de la pantalla (0 centro … 1 esquina); si una pieza sale repetida, cuenta la más cercana */
 function posiciones(){const m=new Map();if(S.view==="mapa"||S.view==="lista")return m;const vw=innerWidth,vh=innerHeight,cx=vw/2,cy=vh/2,
-  // el «micrófono» escucha una zona fija del lienzo: al alejar el zoom, el círculo audible se encoge en pantalla
-  R=Math.hypot(cx,cy)*(isLienzo()?Math.min(1,Math.max(.12,P.z)):1);
+  // la estructura radial es siempre la de la pantalla, con cualquier zoom: centro nítido y fuerte, bordes sordos
+  R=Math.hypot(cx,cy);
   document.querySelectorAll("#main .piece").forEach(p=>{const r=p.getBoundingClientRect();if(r.right<0||r.bottom<0||r.left>vw||r.top>vh)return;const d=Math.hypot(r.left+r.width/2-cx,r.top+r.height/2-cy)/R;if(d>=1)return;const id=p.dataset.id;if(!m.has(id)||d<m.get(id))m.set(id,d);});return m;}
 let auT=0;function auMover(){if(auT)return;auT=setTimeout(()=>{auT=0;if(typeof AU!=="undefined")AU.update();},120);}
 addEventListener("scroll",auMover,{passive:true});
