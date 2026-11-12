@@ -628,7 +628,7 @@ function renderFilters(){
   const lm=countBy(null,d=>normLugar(d.lugar)||"Sin lugar",D.filter(d=>pasa(d,"lugar"))),lugs=[...lm.keys()].filter(l=>l!=="Sin lugar").sort((a,b)=>a.localeCompare(b,"es"));if(lm.has("Sin lugar"))lugs.push("Sin lugar");
   selectF($("#f-lugar"),[["","Todos"],...lugs.map(l=>[l,`${l} (${lm.get(l)})`])],[...S.lugar][0]||"",v=>{S.lugar=v?new Set([v]):new Set();render();});
   const pm=countBy(null,d=>PROC(d)||"Sin procedencia",D.filter(d=>pasa(d,"proc")));
-  selectF($("#f-proc"),[["","Todas"],...[...PROC_NAMES,"Sin procedencia"].filter(k=>pm.has(k)||S.proc.has(k)).map(k=>[k,`${k} (${pm.get(k)||0})`])],[...S.proc][0]||"",v=>{S.proc=v?new Set([v]):new Set();render();});
+  selectF($("#f-proc"),[["","Todas"],...[...PROC_NAMES,"Sin procedencia"].map(k=>[k,`${k} (${pm.get(k)||0})`])],[...S.proc][0]||"",v=>{S.proc=v?new Set([v]):new Set();render();});
   const falta=D.filter(d=>!PROC(d)).length;$("#procBtn").hidden=!(canEdit&&db);$("#procBtnN").textContent=falta?falta+" sin":"✓";
   $("#sndUp").hidden=!(canEdit&&db&&assets);$("#sndUpN").textContent=D.filter(d=>d.sonido).length+" ♪";
   const sinA=D.filter(d=>!d.anio).length;$("#anioBtn").hidden=!(canEdit&&db&&sinA);$("#anioBtnN").textContent=sinA;
