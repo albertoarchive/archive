@@ -550,6 +550,9 @@ body.ui-off main{padding-left:var(--pad)}
   .side{background:var(--bg);padding:12px 14px;border:1px solid var(--rule)}
   .views{border-bottom:1px solid var(--rule)}
 }
+.u-tabla tr.nueva{animation:teclea .01s steps(1) forwards;animation-delay:.05s}
+.u-tabla tr.nueva td:first-child{animation:tinta 1.2s ease-out}
+@keyframes tinta{from{background:var(--sello);color:var(--bg)}to{background:transparent}}
 @media (prefers-reduced-motion:reduce){.u-tabla tr{animation:none;opacity:1}}
 .u-frases{margin:0;display:flex;flex-direction:column;gap:3px;max-width:none!important}
 @media (min-width:861px){.u-frases span{white-space:nowrap}}
@@ -709,10 +712,16 @@ const S={view:"galeria",sent:new Set(),cata:true,familia:new Set(),lugar:new Set
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const pad=n=>String(n).padStart(3,"0");
-/* Portada: el libro de registro con las últimas entradas, en cuanto hay datos */
-let libroN="";function llenarLibro(){if(!$("#u-filas")||typeof D==="undefined"||!D.length)return;const firma=D.length+"|"+D.map(d=>d.n+(d.lugar||"")+(d.anio||"")+d.titulo).join();if(firma===libroN)return;libroN=firma;
-  const ult=[...D].sort((a,b)=>b.n-a.n).slice(0,12);$("#u-n").textContent=String(D.length);$("#u-ult").textContent="Nº "+pad(ult[0].n);
-  $("#u-filas").innerHTML=ult.map((d,i)=>`<tr style="--i:${i}"><td>${pad(d.n)}</td><td>${esc(d.titulo)}</td><td>${esc(d.tipo)}</td><td class="hm">${esc(normLugar(d.lugar)||"—")}</td><td class="hm">${d.anio||"s/f"}</td></tr>`).join("");}
+/* Portada: el libro de registro. Empieza por las últimas entradas y sigue pasando hacia atrás, una línea cada poco, por todo el archivo */
+let libroN="",libroT=0,libroI=0,libroL=[];const LIBRO_VIS=12;
+const filaLibro=(d,i)=>`<tr style="--i:${i}"><td>${pad(d.n)}</td><td>${esc(d.titulo)}</td><td>${esc(d.tipo)}</td><td class="hm">${esc(normLugar(d.lugar)||"—")}</td><td class="hm">${d.anio||"s/f"}</td></tr>`;
+function llenarLibro(){if(!$("#u-filas")||typeof D==="undefined"||!D.length)return;const firma=D.length+"|"+D.map(d=>d.n+(d.lugar||"")+(d.anio||"")+d.titulo).join();if(firma===libroN)return;libroN=firma;
+  libroL=[...D].sort((a,b)=>b.n-a.n);$("#u-n").textContent=String(D.length);$("#u-ult").textContent="Nº "+pad(libroL[0].n);
+  libroI=Math.min(LIBRO_VIS,libroL.length);$("#u-filas").innerHTML=libroL.slice(0,libroI).map(filaLibro).join("");
+  clearInterval(libroT);libroT=setInterval(pasarLibro,1600);}
+function pasarLibro(){const tb=$("#u-filas"),u=$("#umbral");if(!tb||!u||u.classList.contains("fuera")){clearInterval(libroT);return;}
+  if(document.hidden||!libroL.length)return;const d=libroL[libroI%libroL.length];libroI++;
+  tb.insertAdjacentHTML("beforeend",filaLibro(d,0).replace('<tr ','<tr class="nueva" '));while(tb.rows.length>LIBRO_VIS)tb.deleteRow(0);}
 (function espera(){llenarLibro();if(!$("#umbral")||!$("#umbral").classList.contains("fuera"))setTimeout(espera,400);})();
 const yr=d=>d.anio?String(d.anio):"Sin fechar";
 let EXTM={};const LOCALURL=new Map(),PUBLICADO=new Set();const CDN="https://raw.githubusercontent.com/albertoarchive/archive/datos/a/";const src=x=>LOCALURL.get(x)||(/^[0-9a-f]{32}$/.test(x)?(PUBLICADO.has(x)?"a/":CDN)+x+"."+(EXTM[x]||"webp"):"img/"+x);const THUMB=new Set();
