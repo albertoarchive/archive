@@ -439,85 +439,122 @@ body.ui-off main{padding-left:var(--pad)}
   #zOut,#zIn,#zPct{display:none}
 }
 
-/* ================= Capa editorial: plano, filetes finos, una sola familia ================= */
-:root{--f-mono:var(--f-ui);--line:#e2e2df;--rule:#141414}
-.mono{font-family:var(--f-ui);letter-spacing:0;font-variant-numeric:tabular-nums}
-body{font-size:13px}
-/* superficies sin sombras ni esquinas redondeadas */
+/* ================= Sistema de registro: el archivo como libro de inventario =================
+   Impreso (etiquetas en versalitas, sans) frente a mecanografiado (datos, mono). Tinta negra y un rojo de sello. */
+:root{--line:#dcdcd8;--rule:#141414;--sello:#c63a20}
+.lbl{font-family:var(--f-ui);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.regn{font-family:var(--f-mono);color:var(--sello);letter-spacing:.02em}
+/* sello de goma: borde doble, tinta irregular, algo girado */
+.sello{display:inline-flex;align-items:center;justify-content:center;color:var(--sello);border:2px solid currentColor;outline:1px solid currentColor;outline-offset:2px;padding:5px 12px;font-family:var(--f-mono);font-weight:500;font-size:12px;letter-spacing:.16em;text-transform:uppercase;transform:rotate(-4deg);filter:url(#tinta);background:none;border-radius:2px;line-height:1}
+/* superficies planas */
 .card2,.corner,.ibtn,.views,.toast,.about,.uishow{box-shadow:none!important;border-radius:0!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
-/* vistas: texto plano, la activa en negro */
-.views{background:var(--bg);padding:0;gap:16px;top:calc(env(safe-area-inset-top,0px) + 18px)}
-.views button{padding:0 0 2px;border-radius:0;font-size:13px;color:var(--muted);border-bottom:1px solid transparent}
-.views button[aria-current="true"]{background:none;color:var(--fg);border-bottom-color:var(--fg)}
+/* vistas: pestañas de archivador */
+.views{background:none;padding:0;gap:0;top:calc(env(safe-area-inset-top,0px) + 14px);border-bottom:1px solid var(--rule)}
+.views button{padding:5px 14px 4px;border-radius:0;font-family:var(--f-ui);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;font-weight:500;color:var(--muted);border:1px solid transparent;border-bottom:0;margin-bottom:-1px;background:var(--bg)}
+.views button[aria-current="true"]{color:var(--fg);border-color:var(--rule);background:var(--bg)}
 .views button:hover{color:var(--fg)}
 .topr{top:calc(env(safe-area-inset-top,0px) + 12px)}
-.ibtn{background:var(--bg);height:30px;min-width:30px;padding:0 6px}
-.ibtn:hover{background:var(--bg);opacity:.6}
-.searchbox input{border-radius:0!important}
-/* panel lateral como columna de texto */
+.ibtn{background:var(--bg);height:30px;min-width:30px;padding:0 6px;border:1px solid var(--rule)!important}
+.ibtn:hover{background:var(--fg);color:var(--bg)}
+/* panel lateral: cajón de fichas con guías escalonadas */
 .side{background:var(--bg);gap:0;padding:0 2px 16px;top:calc(env(safe-area-inset-top,0px) + 12px);width:296px}
 .side .card2{background:none;border-radius:0}
-.side-head{padding:6px 0 14px}
-.brand{font-weight:500;font-size:15px;letter-spacing:-.015em}
-.brand span{color:inherit}
-.blk{padding:0 0 18px}
-.blk>summary.sec-t.big,.blk>.sec-t.big{border-top:1px solid var(--rule);padding:7px 0 8px;font-family:var(--f-ui);font-size:11px;letter-spacing:.06em;color:var(--fg)}
+.side-head{align-items:stretch!important;display:grid!important;grid-template-columns:1fr auto;grid-template-rows:auto auto;border:1px solid var(--rule)!important;padding:0!important;margin-bottom:22px}
+.side-head .brand{grid-column:1;padding:8px 10px;font-weight:500;font-size:15px;letter-spacing:-.015em}
+.side-head .brand span{color:inherit}
+.side-head #sideHide{grid-column:2;grid-row:1;display:flex;align-items:center;padding:0 10px;border-left:1px solid var(--rule);font-family:var(--f-ui);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase}
+.side-head .head-n{grid-column:1/-1;grid-row:2;margin:0;padding:6px 10px;border-top:1px solid var(--rule);font-family:var(--f-mono);font-size:11px;color:var(--fg);display:flex;justify-content:space-between}
+.side-head .head-n::before{content:"Nº de piezas";font-family:var(--f-ui);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted)}
+.blk{padding:0 0 26px;position:relative}
+/* cada sección es una guía de cajón: su título es una pestaña que asoma sobre el filete */
+.blk,#d-sel details.sec{background:linear-gradient(var(--rule),var(--rule)) no-repeat 0 21px/100% 1px}
+.blk>summary.sec-t.big,.blk>.sec-t.big,#d-sel details.sec>summary.sec-t{position:relative;z-index:1;display:inline-flex!important;align-items:center;gap:10px;box-sizing:border-box;height:22px;margin:0 0 6px var(--tab,0);padding:0 9px;border:1px solid var(--rule);border-bottom:1px solid var(--bg);background:var(--bg);font-family:var(--f-ui);font-size:9.5px;letter-spacing:.11em;color:var(--fg);font-weight:500;text-transform:uppercase}
+#d-ver{--tab:0}#d-fil{--tab:30%}#d-edit{--tab:60%}
+#d-tipo{--tab:0}#d-ambito{--tab:24%}#d-ancla{--tab:48%}#d-sent{--tab:0}
 .side .grid2{grid-template-columns:1fr;gap:0}
-.side .grid2 label{flex-direction:row;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding:0;min-height:32px;font-size:13px;letter-spacing:0;font-family:var(--f-ui)}
+.side .grid2 label{flex-direction:row;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding:0;min-height:30px;font-family:var(--f-ui);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;font-weight:500}
 .side .grid2.one{margin-top:0}
-.side .grid2 select,.side .colbtn{border:0;background-color:transparent;height:32px;width:auto;max-width:62%;padding:0 18px 0 0;text-align:right;text-align-last:right;font-family:var(--f-ui);font-size:13px;border-radius:0;background-position:right 0 center}
+.side .grid2 select,.side .colbtn{border:0;background-color:transparent;height:30px;width:auto;max-width:64%;padding:0 16px 0 0;text-align:right;text-align-last:right;font-family:var(--f-mono);font-size:12px;letter-spacing:0;text-transform:none;border-radius:0;background-position:right 0 center;color:var(--fg)}
 .side .colbtn{padding:0;justify-content:flex-end}
-.side .grid2 select:hover,.side .colbtn:hover{opacity:.6}
-.fila{margin-top:0;min-height:32px;border-bottom:1px solid var(--line)}
-.flab{font-family:var(--f-ui);font-size:13px;letter-spacing:0}
-.side .seg{background:none;padding:0;gap:10px}
-.side .seg button{padding:0 0 1px;border-radius:0;font-family:var(--f-ui);font-size:13px;border-bottom:1px solid transparent}
-.side .seg button[aria-pressed="true"]{background:none;box-shadow:none;border-bottom-color:var(--fg)}
-.switch{margin-top:0;padding:8px 0;border-top:0;border-bottom:1px solid var(--line)}
-.switch b{font-size:13px;font-weight:400}
-.switch small{font-family:var(--f-ui);font-size:12px}
-.switch input{width:28px;height:16px}
-.switch input::before{width:12px;height:12px}
-.switch input:checked::before{transform:translateX(12px)}
-#d-sel .sec{border-top:1px solid var(--line);padding:8px 0 4px;margin-top:0}
-#d-sel>.sec:first-of-type{margin-top:18px;border-top:1px solid var(--rule)}
-.sec-t{font-family:var(--f-ui);font-size:11px;letter-spacing:.06em;color:var(--fg)}
-#d-sel .def{font-size:12px;margin:0 0 8px}
-.finput{border-radius:0!important;border-width:0 0 1px!important}
-.edtools .procbtn{border-bottom:1px solid var(--line);border-radius:0;padding:8px 0;font-size:13px}
-.edtools .procbtn:hover{background:none;opacity:.6}
-.procbtn .n{background:none;color:var(--muted);padding:0;font-size:12px}
-/* esquinas de abajo: texto plano */
-.bl,.br{background:var(--bg);padding:4px 0}
-.zoomer button{background:none;border-radius:0;font-size:13px;min-width:22px;height:22px}
-.zoomer button:hover{background:none;opacity:.6}
-.zoomer #zMin[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
-/* lista como índice */
-.ltable th,.ltable th button{font-family:var(--f-ui)}
-/* portada: marca a todo el ancho */
-.umbral{display:block}
-.u-in{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;text-align:left;padding:14px var(--padr) 0 var(--pad);gap:0;justify-items:stretch}
-.u-fila{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;border-top:1px solid var(--rule);padding-top:8px;font-size:13px;line-height:1.35}
-.u-fila p{margin:0}
-.u-t{font-size:13px;letter-spacing:0;max-width:none;line-height:1.35}
-.u-act{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
-#entrar{white-space:nowrap;font-size:13px;padding:0 0 1px;border-bottom:1px solid var(--fg);background:none;color:var(--fg);border-radius:0}
-#entrar:hover{opacity:.6}
-.u-marca{margin:0 -.04em -.06em;font-size:14.3vw;line-height:1;font-weight:500;letter-spacing:-.065em;white-space:nowrap}
-@media (max-width:860px){
-  .u-fila{grid-template-columns:1fr 1fr;row-gap:14px}
-  .u-marca{font-size:13.4vw}
-  .u-act{flex-direction:column;align-items:flex-start;gap:12px}
-  .side{background:var(--bg);padding:12px 14px;border:1px solid var(--rule)}
-}
-
-/* segmentos y etiquetas en todo el sitio: subrayado en vez de bloques */
-.seg{gap:10px}
-.seg button{background:none;border-radius:0;padding:0 0 1px;border-bottom:1px solid transparent;color:var(--muted)}
-.seg button[aria-pressed="true"]{background:none;color:var(--fg);border-bottom-color:var(--fg)}
+.side .grid2 select:hover,.side .colbtn:hover{color:var(--sello)}
+.fila{margin-top:0;min-height:30px;border-bottom:1px solid var(--line)}
+.flab{font-family:var(--f-ui);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;font-weight:500}
+.seg{gap:2px}
+.side .seg{background:none;padding:0;border-radius:0}
+.side .seg button,.side .seg button[aria-pressed="true"]{border-radius:0;box-shadow:none;background:none;font-family:var(--f-mono);font-size:12px;padding:2px 6px}
+.seg button{background:none;border-radius:0;padding:2px 6px;border:1px solid transparent;color:var(--muted);font-family:var(--f-mono);font-size:12px}
+.seg button[aria-pressed="true"]{background:none;color:var(--fg);border-color:var(--rule)}
 .seg button:hover{color:var(--fg)}
-.tags .tag{background:none;border-radius:0;padding:0;font-family:var(--f-ui);font-size:13px;text-decoration:underline!important;text-underline-offset:3px;text-decoration-color:var(--line)!important}
+.switch{margin-top:0;padding:7px 0;border-top:0;border-bottom:1px solid var(--line)}
+.switch b{font-family:var(--f-ui);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;font-weight:500}
+.switch small{font-family:var(--f-mono);font-size:11px}
+/* casilla de formulario en vez de interruptor */
+.switch input{width:16px;height:16px;border-radius:0;background:var(--bg);border:1px solid var(--rule)}
+.switch input::before{content:"";top:2px;left:2px;width:10px;height:10px;border-radius:0;background:none;box-shadow:none;transform:none!important}
+.switch input:checked{background:var(--bg)}
+.switch input:checked::before{background:var(--fg)}
+#d-sel .sec{border-top:0;padding:0 0 4px;margin-top:30px}
+#d-sel>.sec:first-of-type{margin-top:34px;border-top:0}
+#d-sel .def{font-size:11.5px;margin:0 0 8px;color:var(--muted)}
+.finput{border-radius:0!important;border-color:var(--rule)!important}
+.edtools .procbtn{border-bottom:1px solid var(--line);border-radius:0;padding:7px 0;font-size:13px}
+.edtools .procbtn:hover{background:none;color:var(--sello)}
+.procbtn .n{background:none;color:var(--sello);padding:0;font-family:var(--f-mono);font-size:11px}
+/* esquinas de abajo */
+.bl,.br{background:var(--bg);padding:4px 0}
+.zoomer button{background:none;border:1px solid var(--line);border-radius:0;font-family:var(--f-mono);font-size:11px;min-width:24px;height:22px}
+.zoomer button:hover{border-color:var(--rule)}
+.zoomer #zMin[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+/* etiqueta de pieza al pasar: como la de un museo */
+.piece .cap{background:var(--bg);color:var(--fg);border:1px solid var(--rule);padding:3px 7px 3px;font-family:var(--f-mono);font-size:10.5px;letter-spacing:0;top:calc(100% + 8px)}
+.piece .cap b{color:var(--sello);font-weight:400;margin-right:6px}
+/* ficha de catalogación */
+.f-reg{position:relative;display:grid;grid-template-columns:1fr auto;align-items:end;border:1px solid var(--rule);margin:0 0 18px}
+.f-reg .lbl{padding:7px 10px;color:var(--fg)}
+.f-reg .regn{grid-row:1/3;grid-column:2;font-size:30px;padding:6px 14px;border-left:1px solid var(--rule);align-self:stretch;display:flex;align-items:center}
+.f-reg .f-sub{padding:0 10px 8px;font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.f-reg .sello{position:absolute;right:150px;top:50%;margin-top:-14px;font-size:11px}
+.f-meta dl{border:1px solid var(--rule);grid-template-columns:104px 1fr}
+.f-meta dt{font-family:var(--f-ui);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;font-weight:500;padding:9px 10px 7px;border-right:1px solid var(--line)}
+.f-meta dd{font-family:var(--f-mono);font-size:12px;padding:7px 10px}
+.f-meta dt:nth-last-of-type(1),.f-meta dd:last-of-type{border-bottom:0}
+.tags .tag{background:none;border-radius:0;padding:0;font-family:var(--f-mono);font-size:12px;text-decoration:underline!important;text-underline-offset:3px;text-decoration-color:var(--line)!important}
 .tags{gap:10px}
+/* portada: libro de registro */
+.umbral{display:block;overflow:auto}
+.u-libro{max-width:1100px;margin:0 auto;padding:clamp(18px,5vh,56px) var(--padr) 40px var(--pad)}
+.u-cab{display:grid;grid-template-columns:2fr 1fr 1fr;border:1px solid var(--rule)}
+.u-cab>div{padding:8px 12px 10px;border-left:1px solid var(--rule);display:flex;flex-direction:column;gap:6px}
+.u-cab>div:first-child{border-left:0}
+.u-cab .v{font-family:var(--f-mono);font-size:13px}
+.u-cab h1{margin:0;font-size:clamp(26px,4vw,46px);font-weight:500;letter-spacing:-.035em;line-height:1}
+.u-cab2{display:grid;grid-template-columns:2fr 2fr;border:1px solid var(--rule);border-top:0}
+.u-cab2>div{padding:8px 12px 10px;display:flex;flex-direction:column;gap:6px}
+.u-cab2>div+div{border-left:1px solid var(--rule)}
+.u-t{font-size:15px;letter-spacing:-.01em;margin:0;max-width:none;line-height:1.35}
+.u-tabla{width:100%;border-collapse:collapse;margin-top:26px;font-family:var(--f-mono);font-size:12px}
+.u-tabla th{font-family:var(--f-ui);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;font-weight:500;color:var(--muted);text-align:left;padding:0 10px 6px 0;border-bottom:1px solid var(--rule)}
+.u-tabla td{padding:6px 10px 5px 0;border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0}
+.u-tabla td:first-child{color:var(--sello);width:44px;max-width:none}
+.u-tabla tr{opacity:0;animation:teclea .01s steps(1) forwards;animation-delay:calc(var(--i) * 70ms + 200ms)}
+@keyframes teclea{to{opacity:1}}
+.u-pie{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-top:30px}
+.u-pie .lbl{max-width:40ch;line-height:1.5}
+#entrar.sello{font-size:15px;padding:12px 26px;cursor:pointer;transition:transform .12s;background:none;color:var(--sello);border-radius:2px;transform:rotate(-4deg)}
+#entrar.sello:hover{transform:rotate(-1deg) scale(1.04)}
+#entrar.sello:active{transform:rotate(-1deg) scale(.97)}
+@media (max-width:860px){
+  .u-cab{grid-template-columns:1fr 1fr}.u-cab>div:first-child{grid-column:1/-1;border-bottom:1px solid var(--rule)}.u-cab>div:nth-child(2){border-left:0}
+  .u-cab2{grid-template-columns:1fr}.u-cab2>div+div{border-left:0;border-top:1px solid var(--rule)}
+  .u-tabla .hm{display:none}
+  .side{background:var(--bg);padding:12px 14px;border:1px solid var(--rule)}
+  .views{border-bottom:1px solid var(--rule)}
+}
+@media (prefers-reduced-motion:reduce){.u-tabla tr{animation:none;opacity:1}}
+.list th,.list th button{font-family:var(--f-ui);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;font-weight:500}
+.list thead tr{border-bottom:1px solid var(--rule)}
+.list td{font-family:var(--f-mono);font-size:12px}
+#entrar.sello{margin-right:6px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -540,7 +577,7 @@ body{font-size:13px}
 <button class="corner ibtn" id="sideShow" style="left:var(--pad);top:calc(env(safe-area-inset-top,0px) + 14px)" aria-controls="side" aria-expanded="false" hidden><svg viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg><span>Filtros</span><span class="mono muted" id="sidecount"></span></button>
 
 <aside class="side" id="side" aria-label="Navegación del archivo">
-  <div class="card2 side-head"><span class="brand">archivo<span>.</span>personal</span><span class="mono muted head-n"><span id="count"></span> piezas</span><button class="mono muted" id="sideHide" aria-label="Plegar panel">Plegar ‹</button></div>
+  <div class="card2 side-head"><span class="brand">archivo<span>.</span>personal</span><span class="mono muted head-n"><span id="count"></span></span><button class="mono muted" id="sideHide" aria-label="Plegar panel">Plegar ‹</button></div>
 
   <div class="card2 pad activos" id="activos" hidden><div class="act-h"><span class="mono" id="actN"></span><button class="mono" id="clearAll">Limpiar todo</button></div><div class="act-chips" id="actChips"></div></div>
 
@@ -612,15 +649,20 @@ body{font-size:13px}
 </div>
 
 <main id="main"><p class="empty">Cargando el archivo…</p></main>
-<div class="umbral" id="umbral" role="dialog" aria-modal="true" aria-labelledby="u-t"><div class="u-in">
-  <div class="u-fila">
-    <p class="u-t" id="u-t">Los recuerdos no vuelven todos a la vez.</p>
-    <p><span class="muted">Archivo de objetos pequeños:</span><br>papeles, entradas, pegatinas, recuerdos.</p>
-    <p class="muted">Proyectos Experimentales<br>IED Madrid · 2026</p>
-    <p class="u-act"><span class="muted">Mejor con sonido</span><button id="entrar">Entrar →</button></p>
+<div class="umbral" id="umbral" role="dialog" aria-modal="true" aria-labelledby="u-t"><div class="u-libro">
+  <div class="u-cab">
+    <div><span class="lbl">Libro de registro</span><h1>archivo.personal</h1></div>
+    <div><span class="lbl">Nº de piezas</span><span class="v" id="u-n">—</span></div>
+    <div><span class="lbl">Última entrada</span><span class="v" id="u-ult">—</span></div>
   </div>
-  <p class="u-marca" aria-hidden="true">archivo.personal</p>
+  <div class="u-cab2">
+    <div><span class="lbl">Objeto del archivo</span><p class="u-t" id="u-t">Los recuerdos no vuelven todos a la vez.</p></div>
+    <div><span class="lbl">Procedencia</span><span class="v mono" style="font-size:12px">Proyectos Experimentales · IED Madrid · 2026</span></div>
+  </div>
+  <table class="u-tabla" aria-label="Últimas entradas del registro"><thead><tr><th>Nº</th><th>Objeto</th><th>Tipo</th><th class="hm">Lugar</th><th class="hm">Año</th></tr></thead><tbody id="u-filas"></tbody></table>
+  <div class="u-pie"><span class="lbl">Mejor con sonido. Cada pieza se muestra a su tamaño real.</span><button id="entrar" class="sello">Entrar</button></div>
 </div></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="tinta"><feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="2" seed="4"/><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.6 1.75"/><feComposite in="SourceGraphic" operator="in"/></filter></svg>
 <div class="rq" id="rq" hidden role="dialog" aria-labelledby="rq-q"></div>
 <div class="tk mono" id="tk" hidden></div>
 
@@ -658,6 +700,11 @@ const S={view:"galeria",sent:new Set(),cata:true,familia:new Set(),lugar:new Set
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const pad=n=>String(n).padStart(3,"0");
+/* Portada: el libro de registro con las últimas entradas, en cuanto hay datos */
+let libroN=-1;function llenarLibro(){if(!$("#u-filas")||typeof D==="undefined"||!D.length||D.length===libroN)return;libroN=D.length;
+  const ult=[...D].sort((a,b)=>b.n-a.n).slice(0,12);$("#u-n").textContent=String(D.length);$("#u-ult").textContent="Nº "+pad(ult[0].n);
+  $("#u-filas").innerHTML=ult.map((d,i)=>`<tr style="--i:${i}"><td>${pad(d.n)}</td><td>${esc(d.titulo)}</td><td>${esc(d.tipo)}</td><td class="hm">${esc(normLugar(d.lugar)||"—")}</td><td class="hm">${d.anio||"s/f"}</td></tr>`).join("");}
+(function espera(){llenarLibro();if(!$("#umbral")||!$("#umbral").classList.contains("fuera"))setTimeout(espera,400);})();
 const yr=d=>d.anio?String(d.anio):"Sin fechar";
 let EXTM={};const LOCALURL=new Map(),PUBLICADO=new Set();const CDN="https://raw.githubusercontent.com/albertoarchive/archive/datos/a/";const src=x=>LOCALURL.get(x)||(/^[0-9a-f]{32}$/.test(x)?(PUBLICADO.has(x)?"a/":CDN)+x+"."+(EXTM[x]||"webp"):"img/"+x);const THUMB=new Set();
 const srcT=x=>!LOCALURL.has(x)&&THUMB.has(x)?(PUBLICADO.has(x)?"t/":CDN.slice(0,-2)+"t/")+x+".webp":src(x); // miniatura para la galería (en la web pública apunta a t/)
@@ -926,7 +973,7 @@ function renderLienzo(r){
   LZ={items,TW,TH,tiles:new Map(),repeat:r.length>=14};
   return `<div class="lienzo" id="lz"><div class="lz-in" id="lzin"></div></div>`;
 }
-function tileHTML(){return LZ.items.map(it=>`<button class="piece" data-id="${esc(it.d.id)}" style="--ad:${adel(it.d)}s;position:absolute;left:${it.x.toFixed(1)}px;top:${it.y.toFixed(1)}px;width:${it.w.toFixed(1)}px;height:${it.h.toFixed(1)}px" aria-label="${esc(it.d.titulo)}, ${esc(it.d.tipo)}, ${MW(it.d)} por ${H(it.d)} milímetros"><img src="${srcT(it.d.img[0])}" data-full="${src(it.d.img[0])}" data-w="${Math.max(it.w,it.h).toFixed(0)}" alt="" draggable="false" loading="lazy" decoding="async" data-px="${Math.min(it.w,it.h).toFixed(0)}" style="${fx(it.d,Math.min(it.w,it.h))}"><span class="cap mono">${esc(it.d.tipo)} · ${esc(it.d.titulo)} · ${MW(it.d)}×${H(it.d)} mm</span></button>`).join("");}
+function tileHTML(){return LZ.items.map(it=>`<button class="piece" data-id="${esc(it.d.id)}" style="--ad:${adel(it.d)}s;position:absolute;left:${it.x.toFixed(1)}px;top:${it.y.toFixed(1)}px;width:${it.w.toFixed(1)}px;height:${it.h.toFixed(1)}px" aria-label="${esc(it.d.titulo)}, ${esc(it.d.tipo)}, ${MW(it.d)} por ${H(it.d)} milímetros"><img src="${srcT(it.d.img[0])}" data-full="${src(it.d.img[0])}" data-w="${Math.max(it.w,it.h).toFixed(0)}" alt="" draggable="false" loading="lazy" decoding="async" data-px="${Math.min(it.w,it.h).toFixed(0)}" style="${fx(it.d,Math.min(it.w,it.h))}"><span class="cap mono"><b>Nº ${pad(it.d.n)}</b>${esc(it.d.titulo)} · ${MW(it.d)}×${H(it.d)} mm</span></button>`).join("");}
 function drawTiles(){
   if(!LZ||!$("#lzin"))return;
   const vw=innerWidth,vh=innerHeight,m=200;
@@ -1077,7 +1124,7 @@ function drawFicha(){
   <div class="stage"><div class="stage-in"><div class="card" id="card" tabindex="0" role="img" aria-label="${esc(d.titulo)}. Arrastra para girar."><div class="face front"><img style="${editing||!S.fichaFade?"":fx(d,240)}" src="${(editing&&editing.previews[0])||src(d.img[0])}" alt="${esc(d.pie)}" draggable="false"></div><div class="face back ${two?"":"blank"}">${two?`<img src="${(editing&&editing.previews[1])||src(d.img[1])}" alt="Reverso" draggable="false">`:"Sin reverso registrado"}</div></div></div>
   <div class="stage-foot mono"><span class="sides"><button aria-pressed="true" data-s="0">Anverso</button><button aria-pressed="false" data-s="1">Reverso</button></span><span class="hint">Arrastra para girar</span><span class="seg" id="fscale"><button data-k="mesa" aria-pressed="${fScale==="mesa"}">Escala común</button><button data-k="ajustar" aria-pressed="${fScale==="ajustar"}">Ampliar</button><button data-k="real" aria-pressed="${fScale==="real"}">1:1</button></span><span class="muted" id="esc"></span></div></div>
   <div class="f-meta" id="fmeta"></div>`;
-  $("#fmeta").innerHTML=editing?editorHTML(editing):`<div class="mono muted"><button data-f="tipo" data-k="${esc(d.tipo)}" style="text-decoration:underline;text-underline-offset:3px">${esc(d.tipo)}</button> · ${esc(AMB(d).join(", "))}</div><h1 id="f-title">${esc(d.titulo)}</h1>${d.pie?`<p class="pie">${esc(d.pie)}</p>`:`<p class="pie muted">Sin pie todavía.</p>`}
+  $("#fmeta").innerHTML=editing?editorHTML(editing):`<div class="f-reg"><span class="lbl">Ficha de catalogación</span><span class="regn">Nº ${pad(d.n)}</span><span class="f-sub">${esc(normLugar(d.lugar)||"Sin lugar")} · ${d.anio||"s/f"}</span><span class="sello">${esc(d.nivel||"Registrado")}</span></div><div class="mono muted"><button data-f="tipo" data-k="${esc(d.tipo)}" style="text-decoration:underline;text-underline-offset:3px">${esc(d.tipo)}</button> · ${esc(AMB(d).join(", "))}</div><h1 id="f-title">${esc(d.titulo)}</h1>${d.pie?`<p class="pie">${esc(d.pie)}</p>`:`<p class="pie muted">Sin pie todavía.</p>`}
   <dl><dt>Tipo</dt><dd><button data-f="familia" data-k="${esc(FAM(d))}">${esc(FAM(d))}</button> <span class="muted">›</span> <button data-f="tipo" data-k="${esc(d.tipo)}">${esc(d.tipo)}</button></dd>
   <dt>${AMB(d).length>1?"Ámbitos":"Ámbito"}</dt><dd class="tags">${AMB(d).map(a=>`<button class="tag${a==="Sin ámbito"?" warn":""}" data-f="ambito" data-k="${esc(a)}" title="${esc(AMB_DEF[a]||"Falta elegir un ámbito: pulsa Editar")}">#${esc(a)}</button>`).join(" ")}</dd>
   ${(()=>{const an=ANC(d).filter(a=>a!=="Sin ancla"),L=normLugar(d.lugar);return an.length===1&&L&&an[0]===L?`<dt>Ancla y lugar</dt><dd><button data-f="ancla" data-k="${esc(L)}">${esc(L)}</button>${PAIS[L]&&PAIS[L]!==L?`<span class="muted"> · ${esc(PAIS[L])}</span>`:""}</dd>`:"";})()}
