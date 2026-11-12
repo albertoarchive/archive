@@ -172,6 +172,7 @@ body.moviendo .lz-in{will-change:transform}
 .zoomer button{min-width:28px;height:26px;padding:0 6px;border-radius:6px;background:var(--chip);font:inherit;font-size:12px}
 .zoomer button:hover{background:var(--line)}
 .zoomer #zPct{min-width:52px}
+.zoomer #zMin{margin-left:4px}.zoomer #zMin[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
 .tile{position:absolute}
 .reticula{display:grid;margin:0 auto;padding-bottom:40px}
 .cell{display:flex;align-items:center;justify-content:center;min-width:0}
@@ -462,7 +463,7 @@ body.ui-off main{padding-left:var(--pad)}
 <div class="corner bl">
   <button id="aboutBtn" aria-expanded="false">Acerca del proyecto</button>
   <div class="scalebar mono" id="scalebar"></div>
-  <div class="zoomer mono" id="zoomer"><button id="zOut" title="Alejar (−)" aria-label="Alejar">−</button><button id="zPct" title="Volver al 100% (0)">100%</button><button id="zIn" title="Acercar (+)" aria-label="Acercar">+</button></div>
+  <div class="zoomer mono" id="zoomer"><button id="zOut" title="Alejar (−)" aria-label="Alejar">−</button><button id="zPct" title="Volver al 100% (0)">100%</button><button id="zIn" title="Acercar (+)" aria-label="Acercar">+</button><button id="zMin" title="Vista mínima: todo el archivo de una vez, sin repetir (V)">Todo</button></div>
 </div>
 <button class="mono uishow" id="uiShow" hidden>Mostrar interfaz <kbd>H</kbd></button>
 <div class="corner br mono">
@@ -791,7 +792,7 @@ function drawTiles(){
   if(!LZ||!$("#lzin"))return;
   const vw=innerWidth,vh=innerHeight,m=200;
   const z=P.z||1;let i0=Math.floor(((-P.x)/z-m)/LZ.TW),i1=Math.floor(((-P.x+vw)/z+m)/LZ.TW),j0=Math.floor(((-P.y)/z-m)/LZ.TH),j1=Math.floor(((-P.y+vh)/z+m)/LZ.TH);
-  if(!LZ.repeat){i0=i1=j0=j1=0;}
+  if(!LZ.repeat||P.solo){i0=i1=j0=j1=0;}
   if((i1-i0+1)*(j1-j0+1)>36){const ci=Math.floor(((-P.x+vw/2)/z)/LZ.TW),cj=Math.floor(((-P.y+vh/2)/z)/LZ.TH);i0=Math.max(i0,ci-2);i1=Math.min(i1,ci+2);j0=Math.max(j0,cj-3);j1=Math.min(j1,cj+3);}
   const need=new Set();
   for(let i=i0;i<=i1;i++)for(let j=j0;j<=j1;j++){const key=i+","+j;need.add(key);
@@ -824,7 +825,7 @@ function renderScalebar(){
   $("#scalebar").hidden=S.view==="lista"||S.view==="mapa"||(S.view==="galeria"&&!gk);
   let cm=5;while(cm*10*k>160&&cm>.5)cm=cm>=1?cm/5:cm/2;while(cm*10*k<40&&cm<500)cm*=cm<1?2:5;cm=Math.round(cm*100)/100;
   $("#scalebar").innerHTML=`<i style="width:${cm*10*k}px"></i><span>${cm>=100?cm/100+" m":cm+" cm"}</span>`;
-  const zm=$("#zoomer");if(zm){zm.hidden=!(isLienzo()||S.view==="mapa");$("#zPct").textContent=S.view==="mapa"?"Ajustar":Math.round(z*100)+"%";}
+  const zm=$("#zoomer");if(zm){zm.hidden=!(isLienzo()||S.view==="mapa");$("#zMin").hidden=S.view==="mapa";$("#zMin").setAttribute("aria-pressed",!!P.solo);$("#zPct").textContent=S.view==="mapa"?"Ajustar":Math.round(z*100)+"%";}
 }
 
 function render(){
@@ -852,8 +853,14 @@ function setView(v){S.view=v;P.sig="";try{history.replaceState(null,"","#"+v)}ca
 const P={x:0,y:0,z:1,vx:0,vy:0,sig:"",raf:0,drag:null,moved:false};
 let mvT=0;function moviendo(){document.body.classList.add("moviendo");clearTimeout(mvT);mvT=setTimeout(()=>document.body.classList.remove("moviendo"),180);}
 const ZMIN=.2,ZMAX=8;
-function zoomAt(cx,cy,f){if(!isLienzo())return;const nz=Math.min(ZMAX,Math.max(ZMIN,P.z*f));if(nz===P.z)return;P.x=cx-(cx-P.x)*nz/P.z;P.y=cy-(cy-P.y)*nz/P.z;P.z=nz;moviendo();applyP();}
-function zoomTo(z){zoomAt(innerWidth/2,innerHeight/2,z/P.z);}
+function zoomAt(cx,cy,f){if(!isLienzo())return;if(P.solo){if(f<1)return;P.solo=false;$("#zMin").setAttribute("aria-pressed",false);}const nz=Math.min(ZMAX,Math.max(ZMIN,P.z*f));if(nz===P.z)return;P.x=cx-(cx-P.x)*nz/P.z;P.y=cy-(cy-P.y)*nz/P.z;P.z=nz;moviendo();applyP();}
+function zoomTo(z){if(P.solo){P.solo=false;$("#zMin").setAttribute("aria-pressed",false);}zoomAt(innerWidth/2,innerHeight/2,z/P.z);}
+/* Vista mínima: el mosaico entero cabe en pantalla y no se repite nada */
+function vistaMinima(){if(!isLienzo()||!LZ)return;const off=innerWidth>860&&document.body.classList.contains("side-open")?320:0,top=innerWidth>860?70:120,m=24;
+  const used=Math.max(...LZ.items.map(it=>it.x+it.w)),aw=innerWidth-off-2*m,ah=innerHeight-top-m-50;
+  const z=Math.min(aw/used,ah/LZ.TH);P.solo=true;P.z=z;P.x=off+m+(aw-used*z)/2;P.y=top+(ah-LZ.TH*z)/2;
+  [...LZ.tiles.keys()].forEach(k=>{if(k!=="0,0"){LZ.tiles.get(k).remove();LZ.tiles.delete(k);}});
+  $("#zMin").setAttribute("aria-pressed",true);$("#zPct").textContent=Math.round(z*100)+"%";moviendo();applyP();}
 function sigNow(){return [S.disp,S.orden,S.size,S.q,S.color,S.tol,S.fade,...["ambito","ancla","tipo","familia","anio","lugar","proc","sent","nivel"].map(k=>[...S[k]].join("|")),S.cata].join("§");}
 function clampP(){}
 function applyP(){const m=$("#lzin");if(m)m.style.transform=`translate(${P.x}px,${P.y}px) scale(${P.z})`;drawTiles();renderScalebar();auMover();clearTimeout(applyP.t);applyP.t=setTimeout(nitidez,250);}
@@ -872,6 +879,7 @@ function nitidez(){if(typeof AU!=="undefined")AU.update();const k=(P.z||1)*(devi
     const f=i.dataset.full;if(i.getAttribute("src")===f){i.dataset.ok=1;return;}const im=new Image();im.onload=()=>{i.src=f;i.dataset.ok=1;};im.src=f;});}
 function initCanvas(){
   const sig=sigNow();
+  if(sig!==P.sig&&P.solo){P.sig=sig;vistaMinima();return;}
   if(sig!==P.sig){P.sig=sig;const off=innerWidth>860&&document.body.classList.contains("side-open")?320:0;
     if(LZ&&!LZ.repeat){const used=Math.max(...LZ.items.map(it=>it.x+it.w));const z=P.z;P.x=off+Math.max(20,(innerWidth-off-used*z)/2);P.y=Math.max(innerWidth>860?70:120,(innerHeight-LZ.TH*z)/2);}
     else{P.x=off;P.y=innerWidth>860?70:120;}}
@@ -1470,6 +1478,7 @@ document.addEventListener("keydown",e=>{
   if(isLienzo()&&(e.key==="+"||e.key==="=")){e.preventDefault();zoomAt(innerWidth/2,innerHeight/2,1.25);}
   if(isLienzo()&&(e.key==="-"||e.key==="_")){e.preventDefault();zoomAt(innerWidth/2,innerHeight/2,.8);}
   if(isLienzo()&&e.key==="0"){zoomTo(1);}
+  if(isLienzo()&&(e.key==="v"||e.key==="V")&&!e.metaKey&&!e.ctrlKey){$("#zMin").click();}
   if(isLienzo()&&e.key.startsWith("Arrow")){e.preventDefault();const st=140;if(e.key==="ArrowLeft")P.x+=st;if(e.key==="ArrowRight")P.x-=st;if(e.key==="ArrowUp")P.y+=st;if(e.key==="ArrowDown")P.y-=st;applyP();}
   if(S.view==="galeria"&&k==="r"){setDisp(S.disp==="lienzo"?"reticula":"lienzo");}
   if(k==="g")setView("galeria");if(k==="l")setView("lista");if(k==="t")setView("timeline");
@@ -1795,7 +1804,7 @@ async function exportWeb(){const b=$("#webBtn"),lab=b.querySelector("span"),old=
   lab.textContent=old;b.disabled=false;}
 $("#webBtn").onclick=exportWeb;
 $("#partesBtn").onclick=partesOpen;
-$("#zIn").onclick=()=>isMapa()?mpZoomAt(innerWidth/2,innerHeight/2,1.3):zoomAt(innerWidth/2,innerHeight/2,1.25);$("#zOut").onclick=()=>isMapa()?mpZoomAt(innerWidth/2,innerHeight/2,.77):zoomAt(innerWidth/2,innerHeight/2,.8);$("#zPct").onclick=()=>{if(isMapa()){mpFit();mpCerrar();mpApply();}else zoomTo(1);};
+$("#zIn").onclick=()=>isMapa()?mpZoomAt(innerWidth/2,innerHeight/2,1.3):zoomAt(innerWidth/2,innerHeight/2,1.25);$("#zOut").onclick=()=>isMapa()?mpZoomAt(innerWidth/2,innerHeight/2,.77):zoomAt(innerWidth/2,innerHeight/2,.8);$("#zMin").onclick=()=>{if(P.solo){zoomTo(1);}else vistaMinima();};$("#zPct").onclick=()=>{if(isMapa()){mpFit();mpCerrar();mpApply();}else zoomTo(1);};
 /* ---------- Web pública (GitHub Pages): datos en data.json del repositorio; edición entrando con un token de GitHub ---------- */
 const REPO="albertoarchive/archive",RAMA="datos",API="https://api.github.com/repos/"+REPO; // los datos viven en la rama «datos»: guardar no vuelve a publicar la web
 let TOKEN=null;try{TOKEN=localStorage.getItem("arch-token")}catch(e){}
