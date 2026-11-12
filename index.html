@@ -258,7 +258,8 @@ body.entrando #main .piece{animation:aparece 1.8s ease both;animation-delay:var(
 .snd{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .sndup{cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 .sn-list{display:grid;gap:6px;max-height:50vh;overflow:auto}
-.tr-ctl{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px;font-size:12px}.tr-ctl label{display:grid;gap:4px}.tr-ctl input{width:100%;accent-color:var(--fg)}
+.tr-ctl{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px;font-size:12px}.tr-ctl label{display:grid;gap:4px}.tr-ctl input{width:100%;accent-color:var(--fg)}.tr-ctl .tr-n{display:flex;gap:6px;align-items:center}.tr-ctl .tr-n button{border:1px solid var(--line,#ccc);background:none;border-radius:6px;padding:2px 8px;font:inherit;cursor:pointer;color:inherit}.tr-ctl .tr-n input{flex:1}
+.toast-acc{background:none;border:0;color:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer;font-size:inherit;margin-left:8px;pointer-events:auto}
 #tr{z-index:95}
 .sn-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) 150px;gap:8px;align-items:center;font-size:12px}
 .sn-row span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -523,7 +524,7 @@ const MW=d=>+d.ancho||80, H=d=>+d.alto||80, W=d=>d.aspecto?H(d)*d.aspecto:MW(d);
 let seed=Math.random();
 let db=null, assets=null, canEdit=false, editing=null;
 
-function toast(t){const e=$("#toast");e.textContent=t;e.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>e.hidden=true,2600);}
+function toast(t,acc){const e=$("#toast");e.textContent=t;if(acc){const b=document.createElement("button");b.type="button";b.className="mono toast-acc";b.textContent=acc.t;b.onclick=()=>{e.hidden=true;acc.f();};e.append(" ",b);}e.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>e.hidden=true,acc?7000:2600);}
 
 // cada filtro se cruza con los demás; "skip" deja fuera uno para contar sus opciones (filtros facetados)
 const fold=x=>String(x||"").normalize("NFD").replace(/\p{M}/gu,"").toLowerCase().replace(/[^a-z0-9ñ ]+/g," ");
@@ -992,7 +993,7 @@ function wireFicha(d,two){
   if($("#sentAdd"))$("#sentAdd").onsubmit=ev=>{ev.preventDefault();const w=$("#sentIn").value.trim().replace(/\s+/g," ");if(!w)return;const nm=w.charAt(0).toUpperCase()+w.slice(1).toLowerCase();if(SENT(d).some(x=>x.s.toLowerCase()===nm.toLowerCase()))return;setSent(d,[...SENT(d),{s:nm,i:50}]);};
   if($("#f-snd"))$("#f-snd").onclick=()=>AU.preview(d,$("#f-snd"));
   if($("#f-sndin"))$("#f-sndin").onchange=async ev=>{const f=ev.target.files[0];ev.target.value="";if(!f)return;const lab=$("#f-sndlab");try{const a=await trimmer(f,d.titulo);lab.firstChild.textContent="Subiendo…";await subirSonido(d,f,null,a);toast("Sonido guardado");}catch(err){if(err!=="cancel")toast(typeof err==="string"?err:"No se pudo subir el sonido");}drawFicha();};
-  if($("#f-sndpart"))$("#f-sndpart").onclick=async()=>{try{const r=await trimmer({url:src(d.sonido)},d.titulo,{region:true,ini:+d.sonido_ini||0,fin:+d.sonido_fin||0});await guardarParte(d,r);drawFicha();}catch(e){if(typeof e==="string"&&e!=="cancel")toast(e);}};
+  if($("#f-sndpart"))$("#f-sndpart").onclick=async()=>{try{const r=await trimmer({url:src(d.sonido)},d.titulo,{region:true,ini:+d.sonido_ini||0,fin:+d.sonido_fin||0});const antes=await guardarParte(d,r);drawFicha();toast(r.fin?"Parte guardada":"Suena entero",{t:"Deshacer",f:async()=>{await guardarParte(d,antes);if(!$("#ficha").hidden&&curId===d.id)drawFicha();toast("Deshecho");}});}catch(e){if(typeof e==="string"&&e!=="cancel")toast(e);}};
   if($("#f-sndrm"))$("#f-sndrm").onclick=async()=>{d.sonido=null;try{await db.doc("piezas/"+d.id).update({sonido:null});}catch(e){}AU.update();drawFicha();};
   $("#f-close").onclick=closeFicha;
   $("#f-prev").onclick=()=>step(-1);$("#f-next").onclick=()=>step(1);
@@ -1667,8 +1668,8 @@ function trimmer(file,titulo,op={}){return new Promise(async(resolve,reject)=>{
   const fmt=t=>`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,"0")}`;
   B.innerHTML=`<p class="mono muted" style="margin:0 0 10px">${esc(titulo||"")}${file.name?" · "+esc(file.name):""} · ${fmt(dur)}</p>
   <canvas id="trW" width="${W*2}" height="${Hh*2}" style="width:100%;height:${Hh}px;cursor:pointer;touch-action:none;border-radius:8px;background:var(--chip)"></canvas>
-  <div class="tr-ctl mono"><label>Empieza <b id="trS"></b><input type="range" id="trSi" min="0" step="0.1"></label><label>Dura <b id="trL"></b><input type="range" id="trLi" min="3" step="0.5"></label></div>
-  <div class="actions" style="padding:12px 0 0"><button class="btn" id="trPlay">▶ Escuchar el trozo</button>${op.cola?`<button class="btn" id="trSkip">Saltar →</button>`:""}<button class="btn primary" id="trOk">${op.region?(op.cola?"Guardar y siguiente ↵":"Guardar esta parte"):"Usar este trozo"}</button><span class="mono muted" id="trMsg"></span></div>`;
+  <div class="tr-ctl mono">${op.region?`<div><label for="trSi">Empieza <b id="trS"></b></label><div class="tr-n"><button type="button" data-n="s,-1">−1s</button><button type="button" data-n="s,-.1">−</button><input type="range" id="trSi" min="0" step="0.05"><button type="button" data-n="s,.1">+</button><button type="button" data-n="s,1">+1s</button></div></div><div><label for="trEi">Termina <b id="trE"></b> · <span id="trL"></span></label><div class="tr-n"><button type="button" data-n="e,-1">−1s</button><button type="button" data-n="e,-.1">−</button><input type="range" id="trEi" min="0" step="0.05"><button type="button" data-n="e,.1">+</button><button type="button" data-n="e,1">+1s</button></div></div>`:`<label>Empieza <b id="trS"></b><input type="range" id="trSi" min="0" step="0.1"></label><label>Dura <b id="trL"></b><input type="range" id="trLi" min="3" step="0.5"></label>`}</div>
+  <div class="actions" style="padding:12px 0 0;flex-wrap:wrap">${op.atras?`<button class="btn" id="trPrev">← Anterior</button>`:""}<button class="btn" id="trPlay">▶ Escuchar el trozo</button>${op.region?`<button class="btn" id="trAll">Sonar entero</button>`:""}${op.cola?`<button class="btn" id="trSkip">Saltar →</button>`:""}<button class="btn primary" id="trOk">${op.region?(op.cola?"Guardar y siguiente ↵":"Guardar esta parte"):"Usar este trozo"}</button><span class="mono muted" id="trMsg"></span></div>`;
   const cv=$("#trW"),g=cv.getContext("2d"),ch=buf.getChannelData(0),pk=[];const step=Math.floor(ch.length/(W*2))||1;
   for(let x=0;x<W*2;x++){let m=0;for(let i=x*step;i<(x+1)*step&&i<ch.length;i+=4){const v=Math.abs(ch[i]);if(v>m)m=v;}pk.push(m);}
   const mx=Math.max(...pk)||1,fg=getComputedStyle(document.body).color;
@@ -1677,12 +1678,24 @@ function trimmer(file,titulo,op={}){return new Promise(async(resolve,reject)=>{
     for(let x=0;x<W*2;x+=2){const h=pk[x]/mx*(Hh*2-12);g.globalAlpha=x>=a&&x<=b?.95:.28;g.fillRect(x,Hh-h/2,1.6,h);}
     g.globalAlpha=1;g.fillRect(a,0,3,Hh*2);g.fillRect(b-3,0,3,Hh*2);
     if(ph!=null){g.fillStyle="#e33";g.fillRect(ph/dur*W*2,0,2,Hh*2);}}
-  const si=$("#trSi"),li=$("#trLi");li.max=MAXL;
-  function sync(){R.len=Math.min(R.len,dur);R.s=Math.max(0,Math.min(R.s,dur-R.len));si.max=Math.max(0,dur-R.len);si.value=R.s;li.value=R.len;$("#trS").textContent=fmt(R.s);$("#trL").textContent=`${Math.round(R.len)} s`;draw();if(src0)play();}
-  si.oninput=()=>{R.s=+si.value;sync();};li.oninput=()=>{R.len=+li.value;sync();};
+  const si=$("#trSi"),li=$("#trLi"),ei=$("#trEi"),MINL=op.region?1:3,fmtD=t=>`${Math.floor(t/60)}:${(t%60).toFixed(1).padStart(4,"0")}`;if(li)li.max=MAXL;
+  let rt=0;const replay=()=>{if(!src0)return;clearTimeout(rt);rt=setTimeout(play,140);};
+  function sync(){R.len=Math.max(Math.min(MINL,dur),Math.min(R.len,MAXL,dur));R.s=Math.max(0,Math.min(R.s,dur-R.len));
+    if(ei){si.max=dur;ei.max=dur;si.value=R.s;ei.value=R.s+R.len;$("#trS").textContent=fmtD(R.s);$("#trE").textContent=fmtD(R.s+R.len);$("#trL").textContent=`dura ${R.len.toFixed(1)} s`;}
+    else{si.max=Math.max(0,dur-R.len);si.value=R.s;li.value=R.len;$("#trS").textContent=fmt(R.s);$("#trL").textContent=`${Math.round(R.len)} s`;}
+    draw();replay();}
+  /* Inicio y final por separado: mover uno no arrastra el otro */
+  const ponS=t=>{const e=R.s+R.len;t=Math.max(0,Math.min(t,e-MINL));R.s=t;R.len=Math.min(MAXL,e-t);};
+  const ponE=t=>{t=Math.max(R.s+MINL,Math.min(t,dur,R.s+MAXL));R.len=t-R.s;};
+  if(ei){si.oninput=()=>{ponS(+si.value);sync();};ei.oninput=()=>{ponE(+ei.value);sync();};
+    B.querySelectorAll("[data-n]").forEach(b=>b.onclick=()=>{const[k,v]=b.dataset.n.split(",");if(k==="s")ponS(R.s+ +v);else ponE(R.s+R.len+ +v);sync();});}
+  else{si.oninput=()=>{R.s=+si.value;sync();};li.oninput=()=>{R.len=+li.value;sync();};}
   const tAt=e=>{const r=cv.getBoundingClientRect();return Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*dur;};
-  let drag=null;cv.onpointerdown=e=>{cv.setPointerCapture(e.pointerId);const t=tAt(e);drag=t>=R.s&&t<=R.s+R.len?{off:t-R.s}:{off:R.len/2};R.s=t-drag.off;sync();};
-  cv.onpointermove=e=>{if(!drag)return;R.s=tAt(e)-drag.off;sync();};cv.onpointerup=()=>drag=null;
+  const borde=e=>{const r=cv.getBoundingClientRect(),px=dur/r.width*10,t=tAt(e);return Math.abs(t-R.s)<=px?"s":Math.abs(t-(R.s+R.len))<=px?"e":null;};
+  let drag=null;cv.onpointerdown=e=>{cv.setPointerCapture(e.pointerId);const t=tAt(e),b=op.region?borde(e):null;
+    drag=b?{b}:t>=R.s&&t<=R.s+R.len?{off:t-R.s}:{off:R.len/2};if(!b){R.s=t-drag.off;}sync();};
+  cv.onpointermove=e=>{if(!drag){cv.style.cursor=op.region&&borde(e)?"ew-resize":"pointer";return;}const t=tAt(e);if(drag.b==="s")ponS(t);else if(drag.b==="e")ponE(t);else R.s=t-drag.off;sync();};
+  cv.onpointerup=cv.onpointercancel=()=>drag=null;
   function stop(){if(src0){try{src0.stop()}catch(e){}src0=null;}cancelAnimationFrame(raf);$("#trPlay").textContent="▶ Escuchar el trozo";draw();}
   function play(){stop();ctx.resume();src0=ctx.createBufferSource();src0.buffer=buf;src0.loop=true;src0.loopStart=R.s;src0.loopEnd=R.s+R.len;src0.connect(ctx.destination);src0.start(0,R.s);t0=ctx.currentTime;$("#trPlay").textContent="■ Parar";
     const tick=()=>{if(!src0)return;draw(R.s+((ctx.currentTime-t0)%R.len));raf=requestAnimationFrame(tick);};tick();}
@@ -1690,7 +1703,9 @@ function trimmer(file,titulo,op={}){return new Promise(async(resolve,reject)=>{
   const close=()=>{stop();M.hidden=true;try{ctx.close()}catch(e){}};
   $("#trClose").onclick=()=>{close();if(!done)reject("cancel");};
   if($("#trSkip"))$("#trSkip").onclick=()=>{close();reject("skip");};
-  M.onkeydown=e=>{if(!op.cola||/^(INPUT)$/.test(e.target.tagName)&&e.target.type!=="range")return;if(e.key==="Enter"){e.preventDefault();$("#trOk").click();}if(e.key==="ArrowRight"&&e.target.type!=="range"){e.preventDefault();$("#trSkip").click();}if(e.key===" "){e.preventDefault();$("#trPlay").click();}};
+  if($("#trPrev"))$("#trPrev").onclick=()=>{close();reject("prev");};
+  if($("#trAll"))$("#trAll").onclick=()=>{stop();done=true;close();resolve({s:null,fin:null});};
+  M.onkeydown=e=>{if(!op.cola||/^(INPUT)$/.test(e.target.tagName)&&e.target.type!=="range")return;if(e.key==="Enter"){e.preventDefault();$("#trOk").click();}if(e.key==="ArrowRight"&&e.target.type!=="range"){e.preventDefault();$("#trSkip").click();}if(e.key==="ArrowLeft"&&e.target.type!=="range"&&$("#trPrev")){e.preventDefault();$("#trPrev").click();}if(e.key===" "){e.preventDefault();$("#trPlay").click();}};
   if(op.region){$("#trOk").onclick=()=>{stop();done=true;close();resolve({s:+R.s.toFixed(2),fin:+(R.s+R.len).toFixed(2)});};sync();if(op.cola)setTimeout(()=>{play();$("#trOk").focus();},60);return;}
   $("#trOk").onclick=async()=>{stop();$("#trOk").disabled=true;$("#trPlay").disabled=true;
     try{const a=await encodeTrozo(buf,R.s,R.len,t=>$("#trMsg").textContent="Preparando… "+t);done=true;close();resolve(a);}
@@ -1698,12 +1713,12 @@ function trimmer(file,titulo,op={}){return new Promise(async(resolve,reject)=>{
   sync();
 });}
 const fmtT=t=>`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,"0")}`;
-async function guardarParte(d,r){d.sonido_ini=r.s;d.sonido_fin=r.fin;await db.doc("piezas/"+d.id).update({sonido_ini:r.s,sonido_fin:r.fin,editado:new Date().toISOString()});AU.update();}
+async function guardarParte(d,r){const antes={s:d.sonido_ini??null,fin:d.sonido_fin??null};d.sonido_ini=r.s;d.sonido_fin=r.fin;await db.doc("piezas/"+d.id).update({sonido_ini:r.s,sonido_fin:r.fin,editado:new Date().toISOString()});AU.update();return antes;}
 /* Elegir partes una a una: cada sonido se abre en el recortador; Enter guarda y pasa al siguiente */
 async function partesOpen(){const lista=D.filter(d=>d.sonido).sort((a,b)=>(!!a.sonido_fin-!!b.sonido_fin)||a.n-b.n);let hechas=0;
   for(let i=0;i<lista.length;i++){const d=lista[i];
-    try{const r=await trimmer({url:src(d.sonido)},`${i+1} de ${lista.length} · ${d.titulo}${d.sonido_fin?" · ya elegida":""}`,{region:true,cola:true,ini:+d.sonido_ini||0,fin:+d.sonido_fin||0});await guardarParte(d,r);hechas++;}
-    catch(e){if(e==="skip")continue;if(e!=="cancel")toast(typeof e==="string"?e:"No se pudo abrir «"+d.titulo+"»");break;}}
+    try{const r=await trimmer({url:src(d.sonido)},`${i+1} de ${lista.length} · ${d.titulo}${d.sonido_fin?" · ya elegida":""}`,{region:true,cola:true,atras:i>0,ini:+d.sonido_ini||0,fin:+d.sonido_fin||0});await guardarParte(d,r);hechas++;}
+    catch(e){if(e==="skip")continue;if(e==="prev"){i-=2;continue;}if(e!=="cancel")toast(typeof e==="string"?e:"No se pudo abrir «"+d.titulo+"»");break;}}
   render();if(hechas)toast(`${hechas} ${hechas===1?"parte guardada":"partes guardadas"}`);}
 async function encodeTrozo(buf,s,len,prog){
   const mt=["audio/webm;codecs=opus","audio/webm","audio/mp4"].find(m=>window.MediaRecorder&&MediaRecorder.isTypeSupported(m));
