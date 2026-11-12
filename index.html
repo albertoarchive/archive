@@ -258,7 +258,7 @@ body.entrando #main .piece{animation:aparece 1.8s ease both;animation-delay:var(
 .snd{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .sndup{cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 .sn-list{display:grid;gap:6px;max-height:50vh;overflow:auto}
-.tr-ctl{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px;font-size:12px}.tr-ctl label{display:grid;gap:4px}.tr-ctl input{width:100%;accent-color:var(--fg)}.tr-ctl .tr-n{display:flex;gap:6px;align-items:center}.tr-ctl .tr-n button{border:1px solid var(--line,#ccc);background:none;border-radius:6px;padding:2px 8px;font:inherit;cursor:pointer;color:inherit}.tr-ctl .tr-n input{flex:1}
+.tr-ctl{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px;font-size:12px}.tr-ctl label{display:grid;gap:4px}.tr-ctl input{width:100%;accent-color:var(--fg)}.tr-ctl>div>label{display:flex;gap:6px;align-items:baseline;margin-bottom:4px}.tr-ctl .tr-n{display:flex;gap:6px;align-items:center}.tr-ctl .tr-n button{border:1px solid var(--line,#ccc);background:none;border-radius:6px;padding:2px 8px;font:inherit;cursor:pointer;color:inherit}.tr-ctl .tr-n input{flex:1}
 .toast-acc{background:none;border:0;color:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer;font-size:inherit;margin-left:8px;pointer-events:auto}
 #tr{z-index:95}
 .sn-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) 150px;gap:8px;align-items:center;font-size:12px}
@@ -1685,15 +1685,16 @@ function trimmer(file,titulo,op={}){return new Promise(async(resolve,reject)=>{
     else{si.max=Math.max(0,dur-R.len);si.value=R.s;li.value=R.len;$("#trS").textContent=fmt(R.s);$("#trL").textContent=`${Math.round(R.len)} s`;}
     draw();replay();}
   /* Inicio y final por separado: mover uno no arrastra el otro */
-  const ponS=t=>{const e=R.s+R.len;t=Math.max(0,Math.min(t,e-MINL));R.s=t;R.len=Math.min(MAXL,e-t);};
-  const ponE=t=>{t=Math.max(R.s+MINL,Math.min(t,dur,R.s+MAXL));R.len=t-R.s;};
+  /* el inicio va a donde lo pongas: si pasa del final, empuja el final (manteniendo la duración) */
+  const ponS=t=>{const e=R.s+R.len;t=Math.max(0,Math.min(t,dur-MINL));if(t>e-MINL){R.s=t;R.len=Math.max(MINL,Math.min(R.len,dur-t));}else{R.s=t;R.len=Math.min(MAXL,e-t);}};
+  const ponE=t=>{t=Math.max(MINL,Math.min(t,dur));if(t<R.s+MINL){R.s=Math.max(0,t-R.len);R.len=t-R.s;}else if(t-R.s>MAXL){R.s=t-MAXL;R.len=MAXL;}else R.len=t-R.s;};
   if(ei){si.oninput=()=>{ponS(+si.value);sync();};ei.oninput=()=>{ponE(+ei.value);sync();};
     B.querySelectorAll("[data-n]").forEach(b=>b.onclick=()=>{const[k,v]=b.dataset.n.split(",");if(k==="s")ponS(R.s+ +v);else ponE(R.s+R.len+ +v);sync();});}
   else{si.oninput=()=>{R.s=+si.value;sync();};li.oninput=()=>{R.len=+li.value;sync();};}
   const tAt=e=>{const r=cv.getBoundingClientRect();return Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*dur;};
   const borde=e=>{const r=cv.getBoundingClientRect(),px=dur/r.width*10,t=tAt(e);return Math.abs(t-R.s)<=px?"s":Math.abs(t-(R.s+R.len))<=px?"e":null;};
   let drag=null;cv.onpointerdown=e=>{cv.setPointerCapture(e.pointerId);const t=tAt(e),b=op.region?borde(e):null;
-    drag=b?{b}:t>=R.s&&t<=R.s+R.len?{off:t-R.s}:{off:R.len/2};if(!b){R.s=t-drag.off;}sync();};
+    drag=b?{b}:t>=R.s&&t<=R.s+R.len?{off:t-R.s}:{off:op.region?0:R.len/2};if(!b){R.s=t-drag.off;}sync();};
   cv.onpointermove=e=>{if(!drag){cv.style.cursor=op.region&&borde(e)?"ew-resize":"pointer";return;}const t=tAt(e);if(drag.b==="s")ponS(t);else if(drag.b==="e")ponE(t);else R.s=t-drag.off;sync();};
   cv.onpointerup=cv.onpointercancel=()=>drag=null;
   function stop(){if(src0){try{src0.stop()}catch(e){}src0=null;}cancelAnimationFrame(raf);$("#trPlay").textContent="▶ Escuchar el trozo";draw();}
