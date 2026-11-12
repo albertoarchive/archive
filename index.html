@@ -109,6 +109,7 @@ details.sec>summary.sec-t{display:flex;align-items:center;justify-content:space-
 .pm-img img{max-width:100%;max-height:100%;object-fit:contain;filter:var(--shadow)}
 .pm-t{text-align:center;margin:8px 0 16px}.pm-t h3{margin:4px 0 0;font-size:22px;font-weight:500;letter-spacing:-.01em}
 .pm-opts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.pm-o[aria-pressed="true"]{border-color:var(--fg);box-shadow:inset 0 0 0 1px var(--fg);background:var(--chip)}
 .pm-o{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:12px 14px;border-radius:12px;border:1px solid var(--line);text-align:left;min-height:96px}
 .pm-o:hover,.pm-o:focus-visible{background:var(--fg);color:var(--bg);border-color:var(--fg)}
 .pm-o b{font-size:17px;font-weight:500}.pm-o span{font-size:12px;line-height:1.35;opacity:.7}
@@ -400,7 +401,7 @@ body.ui-off main{padding-left:var(--pad)}
 
   <button class="card2 pad procbtn" id="sndUp" hidden><span>Subir sonidos</span><span class="mono n" id="sndUpN"></span></button><input type="file" id="sndIn" multiple accept="audio/*,video/webm,video/mp4" hidden>
   <button class="card2 pad procbtn" id="anioBtn" hidden><span>Rellenar años</span><span class="mono n" id="anioBtnN"></span></button>
-  <button class="card2 pad procbtn" id="procBtn" hidden><span>Rellenar procedencia</span><span class="mono n" id="procBtnN"></span></button>
+  <button class="card2 pad procbtn" id="procBtn" hidden><span>Revisar procedencia</span><span class="mono n" id="procBtnN"></span></button>
   <details class="card2 pad" id="d-fil" open>
     <summary class="sec-t big">Filtrar y ordenar<span class="chev" aria-hidden="true"></span></summary>
     <div class="grid2">
@@ -628,7 +629,7 @@ function renderFilters(){
   selectF($("#f-lugar"),[["","Todos"],...lugs.map(l=>[l,`${l} (${lm.get(l)})`])],[...S.lugar][0]||"",v=>{S.lugar=v?new Set([v]):new Set();render();});
   const pm=countBy(null,d=>PROC(d)||"Sin procedencia",D.filter(d=>pasa(d,"proc")));
   selectF($("#f-proc"),[["","Todas"],...[...PROC_NAMES,"Sin procedencia"].filter(k=>pm.has(k)||S.proc.has(k)).map(k=>[k,`${k} (${pm.get(k)||0})`])],[...S.proc][0]||"",v=>{S.proc=v?new Set([v]):new Set();render();});
-  const falta=D.filter(d=>!PROC(d)).length;$("#procBtn").hidden=!(canEdit&&db&&falta);$("#procBtnN").textContent=falta;
+  const falta=D.filter(d=>!PROC(d)).length;$("#procBtn").hidden=!(canEdit&&db);$("#procBtnN").textContent=falta?falta+" sin":"✓";
   $("#sndUp").hidden=!(canEdit&&db&&assets);$("#sndUpN").textContent=D.filter(d=>d.sonido).length+" ♪";
   const sinA=D.filter(d=>!d.anio).length;$("#anioBtn").hidden=!(canEdit&&db&&sinA);$("#anioBtnN").textContent=sinA;
   const nm=countBy("nivel");
@@ -1196,17 +1197,19 @@ async function prepFile(f){
 let IMP=[];
 /* Modo rápido de procedencia: pieza a pieza, un botón por opción */
 let PM={q:[],i:0,hist:[],mode:"proc"};
-function pmOpen(){PM.mode="proc";$("#pm-t").textContent="¿Cómo llegó?";PM.q=D.filter(d=>!PROC(d)).sort((a,b)=>FAM_ORDER.indexOf(FAM(a))-FAM_ORDER.indexOf(FAM(b))||a.tipo.localeCompare(b.tipo,"es")||a.n-b.n).map(d=>d.id);PM.i=0;PM.hist=[];$("#pm").hidden=false;document.body.style.overflow="hidden";pmDraw();}
+function pmOpen(){PM.mode="proc";$("#pm-t").textContent="¿Cómo llegó?";const ord=(a,b)=>FAM_ORDER.indexOf(FAM(a))-FAM_ORDER.indexOf(FAM(b))||a.tipo.localeCompare(b.tipo,"es")||a.n-b.n;
+  // primero las que ya tienen procedencia (para revisarlas), agrupadas por categoría; luego las que faltan
+  PM.q=[...D.filter(d=>PROC(d)).sort((a,b)=>PROC_NAMES.indexOf(PROC(a))-PROC_NAMES.indexOf(PROC(b))||ord(a,b)),...D.filter(d=>!PROC(d)).sort(ord)].map(d=>d.id);PM.i=0;PM.hist=[];$("#pm").hidden=false;document.body.style.overflow="hidden";pmDraw();}
 function pmClose(){$("#pm").hidden=true;document.body.style.overflow="";P.sig="";render();}
 function pmDraw(){
   const id=PM.q[PM.i],d=id&&D.find(x=>x.id===id),b=$("#pmBody");
   if(!d){b.innerHTML=`<p>${PM.hist.length?`Hecho: ${PM.hist.length} piezas con procedencia.`:"No queda ninguna pieza sin procedencia."}</p><div class="actions" style="padding:0"><button class="btn primary" id="pmFin">Cerrar</button></div>`;$("#pmFin").onclick=pmClose;return;}
-  b.innerHTML=`<div class="pm-prog mono muted"><span>${PM.i+1} de ${PM.q.length}</span><span class="pm-bar"><i style="width:${(PM.i/PM.q.length*100).toFixed(1)}%"></i></span></div>
+  b.innerHTML=`<div class="pm-prog mono muted"><span>${PM.i+1} de ${PM.q.length}${PROC(d)?` · ahora: ${esc(PROC(d))}`:" · sin procedencia"}</span><span class="pm-bar"><i style="width:${(PM.i/PM.q.length*100).toFixed(1)}%"></i></span></div>
   <div class="pm-img"><img src="${src(d.img[0])}" alt=""></div>
   <div class="pm-t"><div class="mono muted">${esc(FAM(d))} › ${esc(d.tipo)}${d.lugar?" · "+esc(d.lugar):""}</div><h3>${esc(d.titulo)}</h3></div>
   <input id="pmDe" class="pm-de" placeholder="De quién o dónde (opcional): escríbelo y luego elige" autocomplete="off" value="${esc(d.procedencia_de||"")}">
-  <div class="pm-opts">${PROCS.map(([p,def],k)=>`<button class="pm-o" data-p="${p}"><kbd>${k+1}</kbd><b>${p}</b><span>${esc(def)}</span></button>`).join("")}</div>
-  <div class="pm-nav mono"><button id="pmBack" ${PM.i?"":"disabled"}>← Atrás</button><span class="muted">Teclas 1–${PROCS.length} · → saltar</span><button id="pmSkip">No lo sé, saltar →</button></div>`;
+  <div class="pm-opts">${PROCS.map(([p,def],k)=>`<button class="pm-o" data-p="${p}" aria-pressed="${PROC(d)===p}"><kbd>${k+1}</kbd><b>${p}</b><span>${esc(def)}</span></button>`).join("")}</div>
+  <div class="pm-nav mono"><button id="pmBack" ${PM.i?"":"disabled"}>← Atrás</button><span class="muted">Teclas 1–${PROCS.length} · → saltar</span><button id="pmSkip">${PROC(d)?"Está bien, siguiente →":"No lo sé, saltar →"}</button></div>`;
   b.querySelectorAll(".pm-o").forEach(x=>x.onclick=()=>pmSet(d,x.dataset.p));
   $("#pmBack").onclick=pmBack;$("#pmSkip").onclick=()=>{PM.i++;pmDraw();};
   const nx=PM.q[PM.i+1]&&D.find(x=>x.id===PM.q[PM.i+1]);if(nx){const im=new Image();im.src=src(nx.img[0]);}
