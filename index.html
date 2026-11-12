@@ -108,7 +108,7 @@ details.sec>summary.sec-t{display:flex;align-items:center;justify-content:space-
 .pm-img{height:min(42vh,380px);display:flex;align-items:center;justify-content:center;padding:10px}
 .pm-img img{max-width:100%;max-height:100%;object-fit:contain;filter:var(--shadow)}
 .pm-t{text-align:center;margin:8px 0 16px}.pm-t h3{margin:4px 0 0;font-size:22px;font-weight:500;letter-spacing:-.01em}
-.pm-opts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pm-opts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .pm-o{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:12px 14px;border-radius:12px;border:1px solid var(--line);text-align:left;min-height:96px}
 .pm-o:hover,.pm-o:focus-visible{background:var(--fg);color:var(--bg);border-color:var(--fg)}
 .pm-o b{font-size:17px;font-weight:500}.pm-o span{font-size:12px;line-height:1.35;opacity:.7}
@@ -523,10 +523,10 @@ const FAM_OF=Object.fromEntries(FAMILIAS.flatMap(([f,,ts])=>ts.map(t=>[t,f])));
 const FAM_ORDER=[...FAMILIAS.map(f=>f[0]),"Otros"];
 const FAM_DEF=Object.fromEntries(FAMILIAS.map(f=>[f[0],f[1]]));
 const FAM=d=>d.familia||FAM_OF[d.tipo]||"Otros";
-const PROCS=[["Comprado","lo pagué yo"],["Regalado","me lo regaló alguien"],["Gratis","me lo dieron sin pagar: entradas, pulseras, promos, lo que venía con un pedido"],["Intercambiado","lo cambié por otra cosa"],["Encontrado","me lo encontré"],["Heredado","era de alguien de mi familia"]];
-const PROC_DE={Comprado:"¿Dónde?",Regalado:"¿Quién te lo regaló?",Gratis:"¿Dónde te lo dieron?",Intercambiado:"¿Con quién?",Encontrado:"¿Dónde?",Heredado:"¿De quién?"};
+const PROCS=[["Comprado","lo pagué yo"],["Regalado","me lo dio alguien en mano, como regalo"],["Me lo enviaron","me llegó por correo: postales de viaje, cartas, paquetes"],["Gratis","me lo dieron sin pagar: entradas, pulseras, promos, tarjetas, lo que venía con un pedido"],["Lo hice yo","lo hice o lo imprimí yo: fotos, dibujos, recuerdos propios"],["Intercambiado","lo cambié por otra cosa"],["Encontrado","me lo encontré"],["Heredado","era de alguien de mi familia"]];
+const PROC_DE={Comprado:"¿Dónde?",Regalado:"¿Quién te lo regaló?","Me lo enviaron":"¿Quién te lo envió? ¿Desde dónde?","Lo hice yo":"¿Para qué o cuándo?",Gratis:"¿Dónde te lo dieron?",Intercambiado:"¿Con quién?",Encontrado:"¿Dónde?",Heredado:"¿De quién?"};
 const PROC_NAMES=PROCS.map(p=>p[0]);
-const PROC=d=>{const p=(d.procedencia||"").trim().toLowerCase();return !p?null:/^regal/.test(p)?"Regalado":/^compr/.test(p)?"Comprado":/^grat|^me lo di/.test(p)?"Gratis":/^interc|^cambi/.test(p)?"Intercambiado":/^encontr/.test(p)?"Encontrado":/^hered/.test(p)?"Heredado":d.procedencia;};
+const PROC=d=>{const p=(d.procedencia||"").trim().toLowerCase();return !p?null:/^regal/.test(p)?"Regalado":/^compr/.test(p)?"Comprado":/^grat|^me lo di/.test(p)?"Gratis":/^me lo env|^envi/.test(p)?"Me lo enviaron":/^lo hice|^hecho/.test(p)?"Lo hice yo":/^interc|^cambi/.test(p)?"Intercambiado":/^encontr/.test(p)?"Encontrado":/^hered/.test(p)?"Heredado":d.procedencia;};
 const AMB_NAMES=AMBITOS.map(a=>a[0]);
 const AMB_DEF=Object.fromEntries(AMBITOS);
 const ESPANA=new Set(["Madrid","Motril","Granada","Aranjuez","Bilbao","Málaga","Soria","Elche","Pamplona","Barcelona","Sevilla","Valencia","Toledo","Segovia"]);
