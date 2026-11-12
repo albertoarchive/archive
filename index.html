@@ -853,8 +853,13 @@ function zoomAt(cx,cy,f){if(!isLienzo())return;const nz=Math.min(ZMAX,Math.max(Z
 function zoomTo(z){zoomAt(innerWidth/2,innerHeight/2,z/P.z);}
 function sigNow(){return [S.disp,S.orden,S.size,S.q,S.color,S.tol,S.fade,...["ambito","ancla","tipo","familia","anio","lugar","proc","sent","nivel"].map(k=>[...S[k]].join("|")),S.cata].join("§");}
 function clampP(){}
-function applyP(){const m=$("#lzin");if(m)m.style.transform=`translate(${P.x}px,${P.y}px) scale(${P.z})`;drawTiles();renderScalebar();clearTimeout(applyP.t);applyP.t=setTimeout(nitidez,250);}
+function applyP(){const m=$("#lzin");if(m)m.style.transform=`translate(${P.x}px,${P.y}px) scale(${P.z})`;drawTiles();renderScalebar();auMover();clearTimeout(applyP.t);applyP.t=setTimeout(nitidez,250);}
 /* Al acercar, las piezas visibles cambian la miniatura por la imagen completa */
+/* Distancia de cada pieza visible al centro de la pantalla (0 centro … 1 esquina); si una pieza sale repetida, cuenta la más cercana */
+function posiciones(){const m=new Map();if(S.view==="mapa"||S.view==="lista")return m;const vw=innerWidth,vh=innerHeight,cx=vw/2,cy=vh/2,R=Math.hypot(cx,cy);
+  document.querySelectorAll("#main .piece").forEach(p=>{const r=p.getBoundingClientRect();if(r.right<0||r.bottom<0||r.left>vw||r.top>vh)return;const d=Math.min(1,Math.hypot(r.left+r.width/2-cx,r.top+r.height/2-cy)/R);const id=p.dataset.id;if(!m.has(id)||d<m.get(id))m.set(id,d);});return m;}
+let auT=0;function auMover(){if(auT)return;auT=setTimeout(()=>{auT=0;if(typeof AU!=="undefined")AU.update();},120);}
+addEventListener("scroll",auMover,{passive:true});
 /* Solo suenan (y se descargan) los sonidos de las piezas que están a la vista */
 function visiblesIds(){if(S.view==="mapa")return new Set();if(!isLienzo())return null;const vw=innerWidth,vh=innerHeight,s=new Set();document.querySelectorAll("#lzin .piece").forEach(p=>{const r=p.getBoundingClientRect();if(r.right>0&&r.bottom>0&&r.left<vw&&r.top<vh)s.add(p.dataset.id);});return s;}
 function nitidez(){if(typeof AU!=="undefined")AU.update();const k=(P.z||1)*(devicePixelRatio||1);if(k<1.2)return;const vw=innerWidth,vh=innerHeight;
@@ -1566,17 +1571,24 @@ const AU={ctx:null,master:null,rev:null,on:true,n:new Map(),hover:null,calm:1,st
   stop(x){clearTimeout(x.t);x.want=0;if(x.s){try{x.s.stop()}catch(e){}x.s=null;}if(x.el&&!x.el.paused)x.el.pause();},
   sonando(x){return !!(x.s||(x.el&&!x.el.paused));},
   update(){if(!this.started||!this.ctx)return;const c=this.ctx,t=c.currentTime;
-    const vis=visiblesIds(),act=new Set(filtered().filter(d=>d.sonido&&(!vis||vis.has(d.id)||this.hover===d.id)).map(d=>d.id)),con=D.filter(d=>d.sonido&&(act.has(d.id)||this.n.has(d.id)));
-    const nAct=Math.max(1,act.size),abr=1-this.calm; // abrumación: al entrar todo fuerte, se calma al moverte y con el tiempo
-    con.forEach(d=>{const x=this.node(d),v=viva(d),I=INT(d),solo=this.hover===d.id,hay=this.hover&&act.has(this.hover);
-      let vol=(I==null?.6:.3+.7*I/100)*(.35+.65*v);
-      let mix=!act.has(d.id)?0:hay?(solo?1:.03):Math.min(1.3,(.8/Math.sqrt(nAct))*(1+.9*abr));
-      const clar=Math.min(1,v*(I==null?.85:.6+.4*I/100)+(solo?.25:0));
-      x.g.gain.setTargetAtTime(vol*mix,t,.35);x.lp.frequency.setTargetAtTime(250+17000*Math.pow(clar,2),t,.3);
-      x.dry.gain.setTargetAtTime(.35+.65*v,t,.4);x.wet.gain.setTargetAtTime((1-v)*.9+abr*.3,t,.4);
+    // posición de cada pieza respecto al centro de la pantalla: 0 = centro, 1 = borde
+    const pos=posiciones(),act=new Set(filtered().filter(d=>d.sonido&&(pos.has(d.id)||this.hover===d.id)).map(d=>d.id)),con=D.filter(d=>d.sonido&&(act.has(d.id)||this.n.has(d.id)));
+    const hay=this.hover&&act.has(this.hover),abr=1-this.calm; // abrumación: al entrar todo fuerte, se calma al moverte y con el tiempo
+    const peso=d=>{const r=pos.has(d.id)?pos.get(d.id):1;return Math.pow(Math.max(0,1-r),1.6);};
+    const suma=Math.max(1,[...act].reduce((a,id)=>a+peso({id}),0));
+    con.forEach(d=>{const x=this.node(d),v=viva(d),I=INT(d),solo=this.hover===d.id;
+      const vol=(I==null?.6:.3+.7*I/100)*(.35+.65*v),mem=Math.max(.35,Math.min(1,v*(I==null?.85:.6+.4*I/100))),w=peso(d);
+      let g,f;
+      if(!act.has(d.id)){g=0;f=300;}
+      else if(hay){ // con hover: solo esa en primer plano; el resto, lejos y apagado
+        if(solo){g=vol*1.35;f=18000;}else{g=vol*.16*(.25+.75*w);f=260+700*w;}}
+      else{ // sin hover: estructura radial, suena más y más nítido lo que está en el centro
+        g=vol*(.06+.94*w)*Math.min(1.4,1.6/Math.sqrt(suma))*(1+.8*abr);f=260+17500*Math.pow(w,2)*mem;}
+      x.g.gain.setTargetAtTime(g,t,.25);x.lp.frequency.setTargetAtTime(f,t,.25);
+      x.dry.gain.setTargetAtTime(.35+.65*v,t,.4);x.wet.gain.setTargetAtTime((1-v)*.9+abr*.3+(hay&&!solo?.3:0),t,.4);
       if(solo&&this.lastSolo!==d.id)this.play(x,true);
-      else if(mix>0&&!this.sonando(x))this.play(x,false);
-      if(mix===0&&this.sonando(x)){clearTimeout(x.t);x.t=setTimeout(()=>{if(x.g.gain.value<.002)this.stop(x);},2500);}});
+      else if(g>0&&!this.sonando(x))this.play(x,false);
+      if(g===0&&this.sonando(x)){clearTimeout(x.t);x.t=setTimeout(()=>{if(x.g.gain.value<.002)this.stop(x);},2500);}});
     this.lastSolo=this.hover;
   },
   setOn(on){this.on=on;$("#sndBtn").setAttribute("aria-pressed",on);if(this.ctx)this.master.gain.setTargetAtTime(on&&this.started?1:0,this.ctx.currentTime,.3);try{localStorage.setItem("arch-snd",on?"1":"0")}catch(e){}},
