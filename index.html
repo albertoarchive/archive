@@ -132,7 +132,12 @@ body.side-open main{padding-left:calc(var(--pad) + 330px)}
 body.canvas{overflow:hidden;overscroll-behavior:none}
 body.canvas main{position:fixed;inset:0;padding:0!important;overflow:hidden;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
 .lienzo{position:absolute;inset:0;overflow:hidden}
-.lz-in{position:absolute;left:0;top:0;will-change:transform}
+.lz-in{position:absolute;left:0;top:0;transform-origin:0 0}
+body.moviendo .lz-in{will-change:transform}
+.zoomer{display:flex;align-items:center;gap:2px;margin-top:8px}
+.zoomer button{min-width:28px;height:26px;padding:0 6px;border-radius:6px;background:var(--chip);font:inherit;font-size:12px}
+.zoomer button:hover{background:var(--line)}
+.zoomer #zPct{min-width:52px}
 .tile{position:absolute}
 .reticula{display:grid;margin:0 auto;padding-bottom:40px}
 .cell{display:flex;align-items:center;justify-content:center;min-width:0}
@@ -178,7 +183,7 @@ body.panning .piece{pointer-events:none}
 .piece img{display:block;width:100%;height:100%;object-fit:fill;filter:blur(var(--b0,0px)) saturate(var(--sat,1)) var(--shadow);transition:transform .25s ease,filter .5s ease}
 .piece:hover img,.piece:focus-visible img,.piece.aflora img{filter:blur(var(--b1,0px)) saturate(calc(var(--sat,1)*1.1)) var(--shadow);transition:transform .25s ease,filter .25s ease}
 .piece:hover img{transform:translateY(-3px) rotate(-.6deg)}
-#main.enfoca .piece:not(:hover):not(.aflora) img{filter:blur(calc(var(--b0,0px) + 7px)) saturate(calc(var(--sat,1)*.5)) var(--shadow);opacity:.45;transition:filter .45s ease,opacity .45s ease}
+#main.enfoca .piece:not(:hover):not(.aflora) img{filter:blur(calc(var(--b0,0px) + 2px)) saturate(calc(var(--sat,1)*.6)) var(--shadow);opacity:.6;transition:filter .45s ease,opacity .45s ease}
 #main .piece img{transition:transform .25s ease,filter .45s ease,opacity .45s ease}
 .piece.aflora{z-index:3}.piece.aflora img{animation:aflora 4.5s ease}
 @keyframes aflora{0%{transform:scale(1)}15%{transform:scale(1.06)}100%{transform:scale(1)}}
@@ -420,6 +425,7 @@ body.ui-off main{padding-left:var(--pad)}
 <div class="corner bl">
   <button id="aboutBtn" aria-expanded="false">Acerca del proyecto</button>
   <div class="scalebar mono" id="scalebar"></div>
+  <div class="zoomer mono" id="zoomer"><button id="zOut" title="Alejar (−)" aria-label="Alejar">−</button><button id="zPct" title="Volver al 100% (0)">100%</button><button id="zIn" title="Acercar (+)" aria-label="Acercar">+</button></div>
 </div>
 <button class="mono uishow" id="uiShow" hidden>Mostrar interfaz <kbd>H</kbd></button>
 <div class="corner br mono">
@@ -683,7 +689,7 @@ function satur(d){const v=viva(d),I=INT(d);return Math.max(.15,Math.min(1.7,(.35
 function fx(d,px){ // estilo de la imagen según el olvido; px = lado menor dibujado
   const f=olvido(d),sat=satur(d).toFixed(2);if(S.fade==="no")return `--sat:${sat}`;
   if(S.fade==="fundido")return `opacity:${(1-.9*f).toFixed(3)};--sat:${sat}`;
-  if(S.fade==="desenfoque"){const base=0,extra=f*Math.max(2,px*.07);return `--b0:${(base+extra).toFixed(1)}px;--b1:${(extra*.55).toFixed(1)}px;--sat:${sat}`;}
+  if(S.fade==="desenfoque"){const base=0,extra=f*Math.min(2.2,.6+px*.006);return `--b0:${(base+extra).toFixed(1)}px;--b1:${(extra*.55).toFixed(1)}px;--sat:${sat}`;}
   return `filter:url(#dz${Math.round(f*10)}) var(--shadow)`;}
 function refreshVivo(){document.querySelectorAll("#main .piece img[data-px]").forEach(i=>{const d=D.find(x=>x.id===i.closest(".piece").dataset.id);if(d)i.style.cssText=fx(d,+i.dataset.px);});AU.update();}
 function tkBadge(){const b=$("#tk");if(!b)return;b.hidden=TK.k===1&&Math.abs(TK.off)<6e4;if(b.hidden)return;const dt=new Date(ahora());b.innerHTML=`Tiempo ${TK.k===1?"real":TK.k===3600?"×1 h/s":"×1 día/s"} · ${dt.toLocaleDateString("es-ES",{day:"numeric",month:"short",year:"numeric"})} <span class="muted">Mayús+T acelera · Mayús+Y vuelve</span>`;}
@@ -736,8 +742,9 @@ function tileHTML(){return LZ.items.map(it=>`<button class="piece" data-id="${es
 function drawTiles(){
   if(!LZ||!$("#lzin"))return;
   const vw=innerWidth,vh=innerHeight,m=200;
-  let i0=Math.floor((-P.x-m)/LZ.TW),i1=Math.floor((-P.x+vw+m)/LZ.TW),j0=Math.floor((-P.y-m)/LZ.TH),j1=Math.floor((-P.y+vh+m)/LZ.TH);
+  const z=P.z||1;let i0=Math.floor(((-P.x)/z-m)/LZ.TW),i1=Math.floor(((-P.x+vw)/z+m)/LZ.TW),j0=Math.floor(((-P.y)/z-m)/LZ.TH),j1=Math.floor(((-P.y+vh)/z+m)/LZ.TH);
   if(!LZ.repeat){i0=i1=j0=j1=0;}
+  if((i1-i0+1)*(j1-j0+1)>36){const ci=Math.floor(((-P.x+vw/2)/z)/LZ.TW),cj=Math.floor(((-P.y+vh/2)/z)/LZ.TH);i0=Math.max(i0,ci-2);i1=Math.min(i1,ci+2);j0=Math.max(j0,cj-3);j1=Math.min(j1,cj+3);}
   const need=new Set();
   for(let i=i0;i<=i1;i++)for(let j=j0;j<=j1;j++){const key=i+","+j;need.add(key);
     if(!LZ.tiles.has(key)){const t=document.createElement("div");t.className="tile";t.style.cssText=`left:${i*LZ.TW}px;top:${j*LZ.TH}px;width:${LZ.TW}px;height:${LZ.TH}px`;t.innerHTML=tileHTML();
@@ -765,9 +772,11 @@ function renderTimeline(r){
   return `<div class="tl-wrap" style="grid-template-columns:repeat(${Math.min(years.length,5)},minmax(0,1fr))">${years.map(y=>{const v=r.filter(d=>yr(d)===y);return `<section class="year"><h2>${y==="Sin fechar"?"s/f":y}</h2><div class="mono">${v.length} ${v.length===1?"pieza":"piezas"}</div><p class="hito">${hitos[y]||""}</p><div class="ygrid">${v.map(d=>pieceHTML(d,k,false)).join("")}</div></section>`}).join("")}</div>`;
 }
 function renderScalebar(){
-  const k=S.view==="timeline"?.55:gk;
+  const z=isLienzo()?P.z:1,k=(S.view==="timeline"?.55:gk)*z;
   $("#scalebar").hidden=S.view==="lista"||(S.view==="galeria"&&!gk);
-  $("#scalebar").innerHTML=`<i style="width:${50*k}px"></i><span>5 cm</span>`;
+  let cm=5;while(cm*10*k>160&&cm>.5)cm=cm>=1?cm/5:cm/2;while(cm*10*k<40&&cm<500)cm*=cm<1?2:5;cm=Math.round(cm*100)/100;
+  $("#scalebar").innerHTML=`<i style="width:${cm*10*k}px"></i><span>${cm>=100?cm/100+" m":cm+" cm"}</span>`;
+  const zm=$("#zoomer");if(zm){zm.hidden=!isLienzo();$("#zPct").textContent=Math.round(z*100)+"%";}
 }
 
 function render(){
@@ -791,23 +800,27 @@ function render(){
 function setView(v){S.view=v;P.sig="";try{history.replaceState(null,"","#"+v)}catch(e){location.hash=v}render();window.scrollTo(0,0);}
 
 /* ---------- Lienzo: navegar arrastrando ---------- */
-const P={x:0,y:0,vx:0,vy:0,sig:"",raf:0,drag:null,moved:false};
+const P={x:0,y:0,z:1,vx:0,vy:0,sig:"",raf:0,drag:null,moved:false};
+let mvT=0;function moviendo(){document.body.classList.add("moviendo");clearTimeout(mvT);mvT=setTimeout(()=>document.body.classList.remove("moviendo"),180);}
+const ZMIN=.2,ZMAX=8;
+function zoomAt(cx,cy,f){if(!isLienzo())return;const nz=Math.min(ZMAX,Math.max(ZMIN,P.z*f));if(nz===P.z)return;P.x=cx-(cx-P.x)*nz/P.z;P.y=cy-(cy-P.y)*nz/P.z;P.z=nz;moviendo();applyP();}
+function zoomTo(z){zoomAt(innerWidth/2,innerHeight/2,z/P.z);}
 function sigNow(){return [S.disp,S.orden,S.size,S.q,S.color,S.tol,S.fade,...["ambito","ancla","tipo","familia","anio","lugar","proc","sent","nivel"].map(k=>[...S[k]].join("|")),S.cata].join("§");}
 function clampP(){}
-function applyP(){const m=$("#lzin");if(m)m.style.transform=`translate3d(${P.x}px,${P.y}px,0)`;drawTiles();}
+function applyP(){const m=$("#lzin");if(m)m.style.transform=`translate(${P.x}px,${P.y}px) scale(${P.z})`;drawTiles();renderScalebar();}
 function initCanvas(){
   const sig=sigNow();
   if(sig!==P.sig){P.sig=sig;const off=innerWidth>860&&document.body.classList.contains("side-open")?320:0;
-    if(LZ&&!LZ.repeat){const used=Math.max(...LZ.items.map(it=>it.x+it.w));P.x=off+Math.max(20,(innerWidth-off-used)/2);P.y=Math.max(innerWidth>860?70:120,(innerHeight-LZ.TH)/2);}
+    if(LZ&&!LZ.repeat){const used=Math.max(...LZ.items.map(it=>it.x+it.w));const z=P.z;P.x=off+Math.max(20,(innerWidth-off-used*z)/2);P.y=Math.max(innerWidth>860?70:120,(innerHeight-LZ.TH*z)/2);}
     else{P.x=off;P.y=innerWidth>860?70:120;}}
   applyP();
 }
 function stopInertia(){cancelAnimationFrame(P.raf);P.raf=0;}
-function inertia(){P.vx*=.93;P.vy*=.93;P.x+=P.vx;P.y+=P.vy;applyP();
+function inertia(){moviendo();P.vx*=.93;P.vy*=.93;P.x+=P.vx;P.y+=P.vy;applyP();
   if(Math.abs(P.vx)+Math.abs(P.vy)>.3)P.raf=requestAnimationFrame(inertia);else P.raf=0;}
 const mainEl=$("#main");
 mainEl.addEventListener("pointerdown",e=>{if(!isLienzo()||e.button!==0)return;stopInertia();P.drag={x:e.clientX,y:e.clientY,px:P.x,py:P.y,t:performance.now(),lx:e.clientX,ly:e.clientY};P.moved=false;});
-addEventListener("pointermove",e=>{if(!P.drag)return;const dx=e.clientX-P.drag.x,dy=e.clientY-P.drag.y;
+addEventListener("pointermove",e=>{if(!P.drag||pinch)return;moviendo();const dx=e.clientX-P.drag.x,dy=e.clientY-P.drag.y;
   if(!P.moved&&Math.hypot(dx,dy)>5){P.moved=true;document.body.classList.add("panning");try{mainEl.setPointerCapture(e.pointerId)}catch(_){}}
   if(!P.moved)return;const now=performance.now(),dt=Math.max(1,now-P.drag.t);
   P.vx=(e.clientX-P.drag.lx)/dt*16;P.vy=(e.clientY-P.drag.ly)/dt*16;P.drag.t=now;P.drag.lx=e.clientX;P.drag.ly=e.clientY;
@@ -815,7 +828,16 @@ addEventListener("pointermove",e=>{if(!P.drag)return;const dx=e.clientX-P.drag.x
 const endPan=()=>{if(!P.drag)return;const was=P.moved;P.drag=null;document.body.classList.remove("panning");if(was&&!matchMedia("(prefers-reduced-motion:reduce)").matches)P.raf=requestAnimationFrame(inertia);};
 addEventListener("pointerup",endPan);addEventListener("pointercancel",endPan);
 mainEl.addEventListener("click",e=>{if(P.moved){e.stopPropagation();e.preventDefault();P.moved=false;}},true);
-mainEl.addEventListener("wheel",e=>{if(!isLienzo()||!$("#ficha").hidden)return;e.preventDefault();stopInertia();P.x-=e.shiftKey?e.deltaY:e.deltaX;P.y-=e.shiftKey?0:e.deltaY;applyP();},{passive:false});
+mainEl.addEventListener("wheel",e=>{if(!isLienzo()||!$("#ficha").hidden)return;e.preventDefault();stopInertia();
+  if(e.ctrlKey||e.metaKey||e.altKey){const d=e.deltaMode===1?e.deltaY*16:e.deltaY;zoomAt(e.clientX,e.clientY,Math.exp(-d*(e.ctrlKey&&Math.abs(d)<50?.012:.0025)));return;}
+  moviendo();P.x-=e.shiftKey?e.deltaY:e.deltaX;P.y-=e.shiftKey?0:e.deltaY;applyP();},{passive:false});
+/* Safari: gesto de pellizco en el trackpad */
+let gz=1;mainEl.addEventListener("gesturestart",e=>{e.preventDefault();gz=1;});mainEl.addEventListener("gesturechange",e=>{if(!isLienzo())return;e.preventDefault();zoomAt(e.clientX,e.clientY,e.scale/gz);gz=e.scale;});mainEl.addEventListener("gestureend",e=>e.preventDefault());
+/* Pantallas táctiles: pellizco con dos dedos */
+const PT=new Map();let pinch=null;
+mainEl.addEventListener("pointerdown",e=>{if(e.pointerType!=="touch")return;PT.set(e.pointerId,{x:e.clientX,y:e.clientY});if(PT.size===2){const [a,b]=[...PT.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y)};P.drag=null;}});
+addEventListener("pointermove",e=>{if(!PT.has(e.pointerId))return;PT.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pinch&&PT.size===2){const [a,b]=[...PT.values()],d=Math.hypot(a.x-b.x,a.y-b.y);zoomAt((a.x+b.x)/2,(a.y+b.y)/2,d/pinch.d);pinch.d=d;P.moved=true;}});
+const ptEnd=e=>{PT.delete(e.pointerId);if(PT.size<2)pinch=null;};addEventListener("pointerup",ptEnd);addEventListener("pointercancel",ptEnd);
 let rsz=0;addEventListener("resize",()=>{clearTimeout(rsz);rsz=setTimeout(()=>{if(S.view==="galeria"&&$("#ficha").hidden)render();},150);});
 
 /* ---------- Ficha ---------- */
@@ -1366,6 +1388,9 @@ document.addEventListener("keydown",e=>{
   if(typing)return;
   const k=e.key.toLowerCase();
   if(k==="f")setPanel($("#side").hidden);
+  if(isLienzo()&&(e.key==="+"||e.key==="=")){e.preventDefault();zoomAt(innerWidth/2,innerHeight/2,1.25);}
+  if(isLienzo()&&(e.key==="-"||e.key==="_")){e.preventDefault();zoomAt(innerWidth/2,innerHeight/2,.8);}
+  if(isLienzo()&&e.key==="0"){zoomTo(1);}
   if(isLienzo()&&e.key.startsWith("Arrow")){e.preventDefault();const st=140;if(e.key==="ArrowLeft")P.x+=st;if(e.key==="ArrowRight")P.x-=st;if(e.key==="ArrowUp")P.y+=st;if(e.key==="ArrowDown")P.y-=st;applyP();}
   if(S.view==="galeria"&&k==="r"){setDisp(S.disp==="lienzo"?"reticula":"lienzo");}
   if(k==="g")setView("galeria");if(k==="l")setView("lista");if(k==="t")setView("timeline");
@@ -1557,6 +1582,7 @@ async function exportWeb(){const b=$("#webBtn"),lab=b.querySelector("span"),old=
   }catch(e){console.error(e);lab.textContent="Error";await new Promise(r=>setTimeout(r,2000));}
   lab.textContent=old;b.disabled=false;}
 $("#webBtn").onclick=exportWeb;
+$("#zIn").onclick=()=>zoomAt(innerWidth/2,innerHeight/2,1.25);$("#zOut").onclick=()=>zoomAt(innerWidth/2,innerHeight/2,.8);$("#zPct").onclick=()=>zoomTo(1);
 fetch("data.json",{cache:"no-store"}).then(r=>r.json()).then(d=>{EXTM=d.ext||{};D=(d.piezas||d).map(norm);render();computeColors();}).catch(()=>{if(!fromDb)$("#main").innerHTML='<p class="empty">No se pudo cargar el archivo. Recarga la página.</p>';});
 (async()=>{
   return;
