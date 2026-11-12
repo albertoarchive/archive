@@ -20,6 +20,7 @@
 #wEstado{margin-right:10px;color:var(--muted)}#wEstado.err{color:var(--danger)}#wEstado.ok{color:var(--accent)}
 .wlogin{position:fixed;right:var(--padr);bottom:calc(env(safe-area-inset-bottom,0px) + 56px);z-index:40;padding:14px;width:min(300px,calc(100% - 32px));display:grid;gap:8px}
 .wlogin .wrow{display:flex;gap:6px}.wlogin input{flex:1;min-width:0;height:34px;border:1px solid var(--line);border-radius:8px;padding:0 10px;font:inherit;background:var(--bg);color:var(--fg)}.wlogin button{height:34px;padding:0 12px;border-radius:8px;background:var(--fg);color:var(--bg)}.wlogin p{margin:0;min-height:1em;font-size:12px}
+.pm-de{width:100%;height:36px;border:1px solid var(--line);border-radius:8px;padding:0 10px;font:inherit;background:var(--bg);color:var(--fg);margin:4px 0 8px}
 html,body{background:var(--bg);color:var(--fg)}
 body{font-family:var(--f-ui);font-size:13px;line-height:1.4;-webkit-font-smoothing:antialiased}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
@@ -494,7 +495,7 @@ function toast(t){const e=$("#toast");e.textContent=t;e.hidden=false;clearTimeou
 // cada filtro se cruza con los demás; "skip" deja fuera uno para contar sus opciones (filtros facetados)
 const fold=x=>String(x||"").normalize("NFD").replace(/\p{M}/gu,"").toLowerCase().replace(/[^a-z0-9ñ ]+/g," ");
 function pasa(d,skip){const q=fold(S.q.normalize("NFC").replace(/ñ/gi,"n")).split(/\s+/).filter(Boolean);
-  return (skip==="ambito"||!S.ambito.size||AMB(d).some(a=>S.ambito.has(a)))&&(skip==="ancla"||!S.ancla.size||ANC(d).some(a=>S.ancla.has(a)))&&(skip==="tipo"||(!S.tipo.size&&!S.familia.size)||S.tipo.has(d.tipo)||S.familia.has(FAM(d)))&&(skip==="anio"||!S.anio.size||S.anio.has(yr(d)))&&(skip==="sent"||!S.sent.size||SENT(d).some(x=>S.sent.has(x.s))||(S.sent.has("Sin sentimiento")&&!SENT(d).length))&&(skip==="proc"||!S.proc.size||S.proc.has(PROC(d)||"Sin procedencia"))&&(skip==="lugar"||!S.lugar.size||S.lugar.has(normLugar(d.lugar)||"Sin lugar"))&&(!S.color||colorMatch(d)!==null)&&(!q.length||(t=>q.every(w=>t.includes(w)))(fold([d.titulo,d.pie,ANC(d).join(" "),d.tipo,FAM(d),AMB(d).join(" "),d.lugar||"",paisDe(d),paisDe(d)==="Reino Unido"?"Inglaterra":"",paisDe(d)==="Países Bajos"?"Holanda":"",d.nota||"",d.anio||""].join(" "))));}
+  return (skip==="ambito"||!S.ambito.size||AMB(d).some(a=>S.ambito.has(a)))&&(skip==="ancla"||!S.ancla.size||ANC(d).some(a=>S.ancla.has(a)))&&(skip==="tipo"||(!S.tipo.size&&!S.familia.size)||S.tipo.has(d.tipo)||S.familia.has(FAM(d)))&&(skip==="anio"||!S.anio.size||S.anio.has(yr(d)))&&(skip==="sent"||!S.sent.size||SENT(d).some(x=>S.sent.has(x.s))||(S.sent.has("Sin sentimiento")&&!SENT(d).length))&&(skip==="proc"||!S.proc.size||S.proc.has(PROC(d)||"Sin procedencia"))&&(skip==="lugar"||!S.lugar.size||S.lugar.has(normLugar(d.lugar)||"Sin lugar"))&&(!S.color||colorMatch(d)!==null)&&(!q.length||(t=>q.every(w=>t.includes(w)))(fold([d.titulo,d.pie,ANC(d).join(" "),d.tipo,FAM(d),AMB(d).join(" "),d.lugar||"",d.procedencia_de||"",paisDe(d),paisDe(d)==="Reino Unido"?"Inglaterra":"",paisDe(d)==="Países Bajos"?"Holanda":"",d.nota||"",d.anio||""].join(" "))));}
 function filtered(){
   let r=D.filter(d=>pasa(d));
   const byCount=key=>{const m=countBy(key);return (a,b)=>(m.get(val(b,key))||0)-(m.get(val(a,key))||0)||String(val(a,key)).localeCompare(String(val(b,key)),"es")||a.n-b.n;};
@@ -521,17 +522,18 @@ const FAM_OF=Object.fromEntries(FAMILIAS.flatMap(([f,,ts])=>ts.map(t=>[t,f])));
 const FAM_ORDER=[...FAMILIAS.map(f=>f[0]),"Otros"];
 const FAM_DEF=Object.fromEntries(FAMILIAS.map(f=>[f[0],f[1]]));
 const FAM=d=>d.familia||FAM_OF[d.tipo]||"Otros";
-const PROCS=[["Comprado","lo pagué yo"],["Regalado","me lo regaló alguien"],["Gratis","me lo dieron sin pagar: entradas, pulseras, promos, lo que venía con un pedido"]];
+const PROCS=[["Comprado","lo pagué yo"],["Regalado","me lo regaló alguien"],["Gratis","me lo dieron sin pagar: entradas, pulseras, promos, lo que venía con un pedido"],["Intercambiado","lo cambié por otra cosa"],["Encontrado","me lo encontré"],["Heredado","era de alguien de mi familia"]];
+const PROC_DE={Comprado:"¿Dónde?",Regalado:"¿Quién te lo regaló?",Gratis:"¿Dónde te lo dieron?",Intercambiado:"¿Con quién?",Encontrado:"¿Dónde?",Heredado:"¿De quién?"};
 const PROC_NAMES=PROCS.map(p=>p[0]);
-const PROC=d=>{const p=(d.procedencia||"").trim().toLowerCase();return !p?null:/^regal/.test(p)?"Regalado":/^compr/.test(p)?"Comprado":/^grat|^me lo di/.test(p)?"Gratis":d.procedencia;};
+const PROC=d=>{const p=(d.procedencia||"").trim().toLowerCase();return !p?null:/^regal/.test(p)?"Regalado":/^compr/.test(p)?"Comprado":/^grat|^me lo di/.test(p)?"Gratis":/^interc|^cambi/.test(p)?"Intercambiado":/^encontr/.test(p)?"Encontrado":/^hered/.test(p)?"Heredado":d.procedencia;};
 const AMB_NAMES=AMBITOS.map(a=>a[0]);
 const AMB_DEF=Object.fromEntries(AMBITOS);
 const ESPANA=new Set(["Madrid","Motril","Granada","Aranjuez","Bilbao","Málaga","Soria","Elche","Pamplona","Barcelona","Sevilla","Valencia","Toledo","Segovia"]);
 const CIUDADES={londres:"Londres",london:"Londres",paris:"París",milan:"Milán",milano:"Milán",bruselas:"Bruselas",brussels:"Bruselas",bruxelles:"Bruselas",brussel:"Bruselas",amberes:"Amberes",antwerp:"Amberes",antwerpen:"Amberes",anvers:"Amberes",aranjuez:"Aranjuez",montepulciano:"Montepulciano",montpulchiano:"Montepulciano",siena:"Siena",motril:"Motril",schwangau:"Schwangau",bilbao:"Bilbao",malaga:"Málaga",feldkirch:"Feldkirch",roma:"Roma",rome:"Roma",rom:"Roma",berlin:"Berlín",lisboa:"Lisboa",lisbon:"Lisboa",madrid:"Madrid",soria:"Soria",zurich:"Zúrich",freiburg:"Friburgo",friburgo:"Friburgo",weilamrhein:"Weil am Rhein",amsterdam:"Ámsterdam",mallorca:"Mallorca",oporto:"Oporto",porto:"Oporto",liverpool:"Liverpool",rankweil:"Rankweil",ranweil:"Rankweil",vorarlberg:"Vorarlberg",voralberg:"Vorarlberg",liechtenstein:"Liechtenstein",elche:"Elche",pamplona:"Pamplona",barcelona:"Barcelona",sevilla:"Sevilla",seville:"Sevilla",valencia:"Valencia",granada:"Granada",toledo:"Toledo",segovia:"Segovia",florencia:"Florencia",florence:"Florencia",firenze:"Florencia",venecia:"Venecia",venice:"Venecia",venezia:"Venecia",napoles:"Nápoles",naples:"Nápoles",napoli:"Nápoles",turin:"Turín",torino:"Turín",munich:"Múnich",munchen:"Múnich",viena:"Viena",vienna:"Viena",wien:"Viena",praga:"Praga",prague:"Praga",praha:"Praga",basilea:"Basilea",basel:"Basilea",ginebra:"Ginebra",geneva:"Ginebra",geneve:"Ginebra",colonia:"Colonia",koln:"Colonia",cologne:"Colonia",nuevayork:"Nueva York",newyork:"Nueva York",nyc:"Nueva York",edimburgo:"Edimburgo",edinburgh:"Edimburgo",dublin:"Dublín",copenhague:"Copenhague",copenhagen:"Copenhague",estocolmo:"Estocolmo",stockholm:"Estocolmo",atenas:"Atenas",athens:"Atenas",estambul:"Estambul",istanbul:"Estambul",lyon:"Lyon",marsella:"Marsella",marseille:"Marsella",niza:"Niza",nice:"Niza",burdeos:"Burdeos",bordeaux:"Burdeos",gante:"Gante",gent:"Gante",brujas:"Brujas",brugge:"Brujas",bruges:"Brujas",lucerna:"Lucerna",luzern:"Lucerna",salzburgo:"Salzburgo",salzburg:"Salzburgo",hamburgo:"Hamburgo",hamburg:"Hamburgo",manchester:"Mánchester",tokio:"Tokio",tokyo:"Tokio",pisa:"Pisa",verona:"Verona",bolonia:"Bolonia",bologna:"Bolonia",genova:"Génova",genoa:"Génova",cordoba:"Córdoba",como:"Como",lagodicomo:"Como"};
 const cityKey=x=>(x||"").normalize("NFD").replace(/\p{M}/gu,"").toLowerCase().replace(/[^a-z0-9]/g,"");
 const normLugar=l=>l?(CIUDADES[cityKey(l)]||l):l;
-const PAIS={"Amberes":"Bélgica","Bruselas":"Bélgica","Aranjuez":"España","Barcelona":"España","Bilbao":"España","Córdoba":"España","Elche":"España","Granada":"España","Madrid":"España","Mallorca":"España","Motril":"España","Málaga":"España","Pamplona":"España","Sevilla":"España","Basilea":"Suiza","Zúrich":"Suiza","Berlín":"Alemania","Friburgo":"Alemania","Schwangau":"Alemania","Weil am Rhein":"Alemania","Como":"Italia","Milán":"Italia","Montepulciano":"Italia","Roma":"Italia","Siena":"Italia","Feldkirch":"Austria","Rankweil":"Austria","Liechtenstein":"Liechtenstein","Lisboa":"Portugal","Oporto":"Portugal","Liverpool":"Reino Unido","Londres":"Reino Unido","París":"Francia","Ámsterdam":"Países Bajos"};
-const paisDe=d=>PAIS[normLugar(d.lugar)]||"";
+const PAIS={"Amberes":"Bélgica","Bruselas":"Bélgica","Aranjuez":"España","Barcelona":"España","Bilbao":"España","Córdoba":"España","Elche":"España","Granada":"España","Madrid":"España","Mallorca":"España","Motril":"España","Málaga":"España","Pamplona":"España","Sevilla":"España","Basilea":"Suiza","Zúrich":"Suiza","Berlín":"Alemania","Friburgo":"Alemania","Schwangau":"Alemania","Weil am Rhein":"Alemania","Como":"Italia","Milán":"Italia","Montepulciano":"Italia","Roma":"Italia","Siena":"Italia","Feldkirch":"Austria","Rankweil":"Austria","Liechtenstein":"Liechtenstein","Lisboa":"Portugal","Oporto":"Portugal","Liverpool":"Reino Unido","Londres":"Reino Unido","París":"Francia","Ámsterdam":"Países Bajos","Toscana":"Italia"};
+const paisDe=d=>PAIS[normLugar(d.lugar)]||(ANC(d).map(a=>PAIS[a]).find(Boolean))||"";
 function norm(d){return {...d,lugar:normLugar(d.lugar),ambitos:AMB(d),ambito:AMB(d)[0],anclas:ANC(d),ancla:ANC(d)[0]};}
 /* ---------- Color dominante de cada pieza ---------- */
 const COLORS=["Rojo","Naranja","Marrón","Amarillo","Verde","Azul","Violeta","Rosa","Blanco","Gris","Negro"];
@@ -885,7 +887,7 @@ function drawFicha(){
   <dt>Medida</dt><dd class="mono">${d.medida_estimada?"≈ ":""}${MW(d)} × ${H(d)} mm${d.medida_estimada?' <span class="muted">(estimada)</span>':""}</dd>
   <dt>Año</dt><dd class="mono">${d.anio||"Sin fechar"}</dd>
   ${(()=>{const an=ANC(d).filter(a=>a!=="Sin ancla"),L=normLugar(d.lugar);return an.length===1&&L&&an[0]===L?"":`<dt>Lugar</dt><dd>${L?`<button data-f="lugar" data-k="${esc(L)}">${esc(L)}</button>${PAIS[L]&&PAIS[L]!==L?`<span class="muted"> · ${esc(PAIS[L])}</span>`:""}`:'<span class="muted">Sin lugar</span>'}</dd>`;})()}
-  <dt>Procedencia</dt><dd>${PROC(d)?`<button data-f="proc" data-k="${esc(PROC(d))}" title="${esc(Object.fromEntries(PROCS)[PROC(d)]||"")}">${esc(PROC(d))}</button>`:'<span class="muted">Por completar</span>'}</dd>
+  <dt>Procedencia</dt><dd>${PROC(d)?`<button data-f="proc" data-k="${esc(PROC(d))}" title="${esc(Object.fromEntries(PROCS)[PROC(d)]||"")}">${esc(PROC(d))}</button>`:'<span class="muted">Por completar</span>'}${d.procedencia_de?`<span class="muted"> · ${esc(d.procedencia_de)}</span>`:""}</dd>
   ${d.sonido||(canEdit&&assets)?`<dt>Sonido</dt><dd class="snd">${d.sonido?`<button type="button" class="mono" id="f-snd">▶ Escuchar</button>`:'<span class="muted">Sin sonido</span>'}${canEdit&&assets?`<label class="mono sndup" id="f-sndlab">${d.sonido?"Cambiar":"Añadir sonido"}<input type="file" id="f-sndin" accept="audio/*,video/webm,video/mp4" hidden></label>${d.sonido?`<button type="button" class="mono muted" id="f-sndrm">Quitar</button>`:""}`:""}</dd>`:""}
   <dt>Nivel</dt><dd><span class="nivel">${NIVELES.map((_,i)=>`<i class="${i<=lv?"on":""}"></i>`).join("")}</span> ${esc(d.nivel)}</dd>
   <dt>Registro</dt><dd class="mono">CMN-${pad(d.n)}${d.archivo?` <span class="muted">· ${esc(d.archivo.normalize("NFC"))}</span>`:""}</dd></dl>
@@ -960,8 +962,8 @@ function closeFicha(){editing=null;$("#ficha").hidden=true;document.body.style.o
 addEventListener("resize",()=>{if(!$("#ficha").hidden)sizeCard();});
 
 /* ---------- Editor ---------- */
-function toForm(d){return {id:d.id,isNew:false,titulo:d.titulo||"",tipo:d.tipo||"",ambito:AMB(d).filter(a=>a!=="Sin ámbito").join(", "),ancla:ANC(d).filter(a=>a!=="Sin ancla").join(", "),anio:d.anio||"",lugar:d.lugar||"",ancho:d.ancho||"",alto:d.alto||"",procedencia:d.procedencia||"",pie:d.pie||"",nota:d.nota||"",nivel:d.nivel||"Catalogado",sonido:d.sonido||null,sonidoFile:null,img:[...d.img],files:[null,null],previews:[null,null],lock:true};}
-function blankForm(){return {id:null,isNew:true,titulo:"",tipo:"",ambito:"",ancla:"",anio:"",lugar:"",ancho:"",alto:"",procedencia:"",pie:"",nota:"",nivel:"Catalogado",sonido:null,sonidoFile:null,img:[],files:[null,null],previews:[null,null],lock:true};}
+function toForm(d){return {id:d.id,isNew:false,titulo:d.titulo||"",tipo:d.tipo||"",ambito:AMB(d).filter(a=>a!=="Sin ámbito").join(", "),ancla:ANC(d).filter(a=>a!=="Sin ancla").join(", "),anio:d.anio||"",lugar:d.lugar||"",ancho:d.ancho||"",alto:d.alto||"",procedencia:d.procedencia||"",procedencia_de:d.procedencia_de||"",pie:d.pie||"",nota:d.nota||"",nivel:d.nivel||"Catalogado",sonido:d.sonido||null,sonidoFile:null,img:[...d.img],files:[null,null],previews:[null,null],lock:true};}
+function blankForm(){return {id:null,isNew:true,titulo:"",tipo:"",ambito:"",ancla:"",anio:"",lugar:"",ancho:"",alto:"",procedencia:"",procedencia_de:"",pie:"",nota:"",nivel:"Catalogado",sonido:null,sonidoFile:null,img:[],files:[null,null],previews:[null,null],lock:true};}
 function ambChips(sel){const on=new Set(sel.filter(a=>a!=="Sin ámbito"));const extra=[...on].filter(a=>!AMB_NAMES.includes(a));
   return [...AMB_NAMES,...extra].map(a=>`<button type="button" class="achip" data-a="${esc(a)}" aria-pressed="${on.has(a)}" title="${esc(AMB_DEF[a]||"")}">${esc(a)}</button>`).join("");}
 function wireChips(wrap,get,set){wrap.querySelectorAll(".achip").forEach(b=>b.onclick=ev=>{ev.preventDefault();const cur=get().filter(a=>a!=="Sin ámbito"),a=b.dataset.a;
@@ -979,7 +981,7 @@ function editorHTML(e){
   <div class="fld"><label for="e-ancla">Anclas <span class="muted">· lo concreto: museo, marca, artista, equipo, saga, evento. Ni la ciudad (eso es Lugar) ni el tema</span></label><input id="e-ancla" value="${esc(e.ancla)}" list="dl-ancla" placeholder="Separa varias con comas · puede quedar vacía"></div>
   <div class="row2">${f("ancho","Ancho (mm)",e.ancho,'inputmode="decimal" required')}${f("alto","Alto (mm)",e.alto,'inputmode="decimal" required')}</div>
   <label class="check mono"><input type="checkbox" id="e-lock" ${e.lock?"checked":""}> Mantener la proporción de la imagen</label>
-  <div class="row2">${f("lugar","Lugar",e.lugar)}<div class="fld"><label>Procedencia</label><input type="hidden" id="e-procedencia" value="${esc(PROC(e)||"")}"><div class="ambpick" id="e-procpick">${PROC_NAMES.map(p=>`<button type="button" class="achip" data-p="${p}" aria-pressed="${PROC(e)===p}" title="${esc(Object.fromEntries(PROCS)[p])}">${p}</button>`).join("")}</div></div></div>
+  <div class="row2">${f("lugar","Lugar",e.lugar)}<div class="fld"><label>Procedencia</label><input type="hidden" id="e-procedencia" value="${esc(PROC(e)||"")}"><div class="ambpick" id="e-procpick">${PROC_NAMES.map(p=>`<button type="button" class="achip" data-p="${p}" aria-pressed="${PROC(e)===p}" title="${esc(Object.fromEntries(PROCS)[p])}">${p}</button>`).join("")}</div><input id="e-procedencia_de" value="${esc(e.procedencia_de||"")}" placeholder="${esc(PROC_DE[PROC(e)]||"De quién o dónde (opcional)")}" style="margin-top:6px" autocomplete="off"></div></div>
   <div class="fld"><label>Sonido <span class="muted">· opcional · al elegirlo, escoges el trozo (máx. 60 s)</span></label><div class="snd"><span class="mono muted" id="e-sndname">${e.sonidoFile?esc(e.sonidoFile.name):e.sonido?"Tiene sonido":"Sin sonido"}</span><input type="file" id="e-snd" accept="audio/*,video/webm,video/mp4">${(e.sonido||e.sonidoFile)?`<button type="button" class="mono muted" id="e-sndrm">Quitar</button>`:""}</div></div>
   <div class="fld"><label for="e-nivel">Nivel</label><select id="e-nivel">${NIVELES.map(n=>`<option ${n===e.nivel?"selected":""}>${n}</option>`).join("")}</select></div>
   <div class="fld"><label for="e-pie">Pie</label><textarea id="e-pie">${esc(e.pie)}</textarea></div>
@@ -988,7 +990,7 @@ function editorHTML(e){
   <div class="actions"><button type="submit" class="btn primary" id="e-save">Guardar</button><button type="button" class="btn" id="e-cancel">Cancelar</button>${e.isNew?"":`<span id="e-delwrap"><button type="button" class="btn danger" id="e-del">Eliminar pieza</button></span>`}</div>
   </form>`;
 }
-function readForm(){["titulo","tipo","ambito","ancla","anio","lugar","ancho","alto","procedencia","pie","nota","nivel"].forEach(k=>editing[k]=$("#e-"+k).value);editing.lock=$("#e-lock").checked;}
+function readForm(){["titulo","tipo","ambito","ancla","anio","lugar","ancho","alto","procedencia","procedencia_de","pie","nota","nivel"].forEach(k=>editing[k]=$("#e-"+k).value);editing.lock=$("#e-lock").checked;}
 function aspect(){const i=$("#card .front img");return i&&i.naturalWidth?i.naturalHeight/i.naturalWidth:null;}
 function wireEditor(){
   const e=editing;
@@ -1005,7 +1007,7 @@ function wireEditor(){
     $("#e-del0").onclick=()=>drawFicha();
     $("#e-del2").onclick=async()=>{try{await db.doc("piezas/"+e.id).delete();const i=curList.indexOf(e.id);curList.splice(i,1);editing=null;D=D.filter(x=>x.id!==e.id);closeFicha();render();toast("Pieza eliminada");}catch(err){showErr(err);}};};
   $("#edform").onsubmit=async ev=>{ev.preventDefault();readForm();await save();};
-  $("#e-procpick").querySelectorAll(".achip").forEach(b=>b.onclick=ev=>{ev.preventDefault();const on=$("#e-procedencia").value===b.dataset.p;$("#e-procedencia").value=on?"":b.dataset.p;$("#e-procpick").querySelectorAll(".achip").forEach(x=>x.setAttribute("aria-pressed",String(!on&&x===b)));});
+  $("#e-procpick").querySelectorAll(".achip").forEach(b=>b.onclick=ev=>{ev.preventDefault();const on=$("#e-procedencia").value===b.dataset.p;$("#e-procedencia").value=on?"":b.dataset.p;$("#e-procpick").querySelectorAll(".achip").forEach(x=>x.setAttribute("aria-pressed",String(!on&&x===b)));$("#e-procedencia_de").placeholder=PROC_DE[on?"":b.dataset.p]||"De quién o dónde (opcional)";});
   wireChips($("#e-ambpick"),()=>$("#e-ambito").value.split(",").map(x=>x.trim()).filter(Boolean),v=>{$("#e-ambito").value=v.join(", ");});
 }
 function showErr(err){const p=$("#e-err");p.hidden=false;p.textContent=typeof err==="string"?err:"No se pudo guardar ("+(err&&err.code||"error")+"). Revisa la conexión y vuelve a intentarlo.";}
@@ -1037,7 +1039,7 @@ async function save(){
     const doc={...(prev||{}),id,n:prev?prev.n:Math.max(0,...D.map(x=>x.n||0))+1,archivo:prev?prev.archivo||null:null,img:img.filter(Boolean),
       titulo:e.titulo.trim(),tipo:e.tipo.trim(),ambitos:(e.ambito.split(",").map(x=>x.trim()).filter(Boolean).length?e.ambito.split(",").map(x=>x.trim()).filter(Boolean):["Sin ámbito"]),ambito:(e.ambito.split(",").map(x=>x.trim()).filter(Boolean)[0]||"Sin ámbito"),anclas:(e.ancla.split(",").map(x=>x.trim()).filter(Boolean).length?e.ancla.split(",").map(x=>x.trim()).filter(Boolean):["Sin ancla"]),ancla:(e.ancla.split(",").map(x=>x.trim()).filter(Boolean)[0]||"Sin ancla"),anio:e.anio?+e.anio:null,lugar:normLugar(e.lugar.trim())||null,
       ancho:Math.round(+e.ancho),alto:Math.round(+e.alto),medida_estimada:prev?(prev.medida_estimada&&+e.ancho===prev.ancho&&+e.alto===prev.alto):false,
-      procedencia:e.procedencia.trim()||null,sonido,pie:e.pie.trim(),nota:e.nota.trim()||null,nivel:e.nivel,editado:new Date().toISOString()};
+      procedencia:e.procedencia.trim()||null,procedencia_de:(e.procedencia_de||"").trim()||null,sonido,pie:e.pie.trim(),nota:e.nota.trim()||null,nivel:e.nivel,editado:new Date().toISOString()};
     await db.doc("piezas/"+id).set(doc);
     const i=D.findIndex(x=>x.id===id); if(i>=0) D[i]=norm(doc); else D.push(norm(doc));
     if(!curList.includes(id)) curList.push(id);
@@ -1192,20 +1194,21 @@ function pmDraw(){
   b.innerHTML=`<div class="pm-prog mono muted"><span>${PM.i+1} de ${PM.q.length}</span><span class="pm-bar"><i style="width:${(PM.i/PM.q.length*100).toFixed(1)}%"></i></span></div>
   <div class="pm-img"><img src="${src(d.img[0])}" alt=""></div>
   <div class="pm-t"><div class="mono muted">${esc(FAM(d))} › ${esc(d.tipo)}${d.lugar?" · "+esc(d.lugar):""}</div><h3>${esc(d.titulo)}</h3></div>
+  <input id="pmDe" class="pm-de" placeholder="De quién o dónde (opcional): escríbelo y luego elige" autocomplete="off" value="${esc(d.procedencia_de||"")}">
   <div class="pm-opts">${PROCS.map(([p,def],k)=>`<button class="pm-o" data-p="${p}"><kbd>${k+1}</kbd><b>${p}</b><span>${esc(def)}</span></button>`).join("")}</div>
-  <div class="pm-nav mono"><button id="pmBack" ${PM.i?"":"disabled"}>← Atrás</button><span class="muted">Teclas 1 · 2 · 3 · → saltar</span><button id="pmSkip">No lo sé, saltar →</button></div>`;
+  <div class="pm-nav mono"><button id="pmBack" ${PM.i?"":"disabled"}>← Atrás</button><span class="muted">Teclas 1–${PROCS.length} · → saltar</span><button id="pmSkip">No lo sé, saltar →</button></div>`;
   b.querySelectorAll(".pm-o").forEach(x=>x.onclick=()=>pmSet(d,x.dataset.p));
   $("#pmBack").onclick=pmBack;$("#pmSkip").onclick=()=>{PM.i++;pmDraw();};
   const nx=PM.q[PM.i+1]&&D.find(x=>x.id===PM.q[PM.i+1]);if(nx){const im=new Image();im.src=src(nx.img[0]);}
 }
 async function pmSet(d,p){
-  const prev=d.procedencia||null;d.procedencia=p;PM.hist.push({id:d.id,prev});PM.i++;pmDraw();
-  try{await db.doc("piezas/"+d.id).update({procedencia:p,editado:new Date().toISOString()});}
+  const de=($("#pmDe")?.value||"").trim()||null;const prev=d.procedencia||null,prevDe=d.procedencia_de||null;d.procedencia=p;d.procedencia_de=de;PM.hist.push({id:d.id,prev,prevDe});PM.i++;pmDraw();
+  try{await db.doc("piezas/"+d.id).update({procedencia:p,procedencia_de:de,editado:new Date().toISOString()});}
   catch(e){d.procedencia=prev;toast("No se pudo guardar «"+d.titulo+"». Vuelve atrás e inténtalo otra vez.");}
 }
 async function pmBack(){
   const h=PM.hist.pop();PM.i=Math.max(0,PM.i-1);
-  if(h&&PM.q[PM.i]===h.id){const d=D.find(x=>x.id===h.id);d.procedencia=h.prev;try{await db.doc("piezas/"+d.id).update({procedencia:h.prev});}catch(e){}}
+  if(h&&PM.q[PM.i]===h.id){const d=D.find(x=>x.id===h.id);d.procedencia=h.prev;d.procedencia_de=h.prevDe||null;try{await db.doc("piezas/"+d.id).update({procedencia:h.prev,procedencia_de:h.prevDe||null});}catch(e){}}
   else if(h)PM.hist.push(h);
   pmDraw();
 }
@@ -1252,7 +1255,7 @@ async function ymBack(){
 }
 $("#anioBtn").onclick=ymOpen;$("#pmClose").onclick=pmClose;
 $("#pm").addEventListener("keydown",e=>{if(e.key==="Escape")pmClose();});
-document.addEventListener("keydown",e=>{if($("#pm").hidden||PM.mode!=="proc")return;const id=PM.q[PM.i],d=id&&D.find(x=>x.id===id);if(!d)return;
+document.addEventListener("keydown",e=>{if($("#pm").hidden||PM.mode!=="proc"||e.target.id==="pmDe")return;const id=PM.q[PM.i],d=id&&D.find(x=>x.id===id);if(!d)return;
   const k=+e.key;if(k>=1&&k<=PROCS.length){e.preventDefault();pmSet(d,PROCS[k-1][0]);}
   else if(e.key==="ArrowRight"){e.preventDefault();PM.i++;pmDraw();}else if(e.key==="ArrowLeft"||e.key==="Backspace"){e.preventDefault();pmBack();}},true);
 function impOpen(){$("#imp").hidden=false;document.body.style.overflow="hidden";impStart();}
