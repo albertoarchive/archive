@@ -710,7 +710,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const pad=n=>String(n).padStart(3,"0");
 /* Portada: el libro de registro con las últimas entradas, en cuanto hay datos */
-let libroN=-1;function llenarLibro(){if(!$("#u-filas")||typeof D==="undefined"||!D.length||D.length===libroN)return;libroN=D.length;
+let libroN="";function llenarLibro(){if(!$("#u-filas")||typeof D==="undefined"||!D.length)return;const firma=D.length+"|"+D.map(d=>d.n+(d.lugar||"")+(d.anio||"")+d.titulo).join();if(firma===libroN)return;libroN=firma;
   const ult=[...D].sort((a,b)=>b.n-a.n).slice(0,12);$("#u-n").textContent=String(D.length);$("#u-ult").textContent="Nº "+pad(ult[0].n);
   $("#u-filas").innerHTML=ult.map((d,i)=>`<tr style="--i:${i}"><td>${pad(d.n)}</td><td>${esc(d.titulo)}</td><td>${esc(d.tipo)}</td><td class="hm">${esc(normLugar(d.lugar)||"—")}</td><td class="hm">${d.anio||"s/f"}</td></tr>`).join("");}
 (function espera(){llenarLibro();if(!$("#umbral")||!$("#umbral").classList.contains("fuera"))setTimeout(espera,400);})();
@@ -2115,8 +2115,10 @@ db.collection("piezas").onSnapshot(snap=>{
 /* Primero lo publicado (rápido); luego lo último del repositorio, sin esperar a que se publique */
 fetch("data.json",{cache:"no-store"}).then(r=>r.json()).then(d=>{Object.keys(d.ext||{}).forEach(k=>PUBLICADO.add(k));if(!STORE.size)cargar(d);}).catch(()=>{})
 .finally(()=>{
-  const fresco=TOKEN?loginWeb(TOKEN).then(f=>{cargar(f);activar();}).catch(e=>{if(e.status===401)salir();return leerDatos(RAMA,null).then(cargar);})
-    :leerDatos(RAMA,null).then(cargar);
+  // si la API de GitHub no responde (p. ej. límite de 60 consultas/hora), los datos frescos se leen del archivo en bruto de la rama
+  const crudo=()=>fetch(CDN.slice(0,-2)+"data.json?t="+Date.now(),{cache:"no-store"}).then(r=>{if(!r.ok)throw 0;return r.json();}).then(cargar);
+  const fresco=TOKEN?loginWeb(TOKEN).then(f=>{cargar(f);activar();}).catch(e=>{if(e.status===401)salir();return leerDatos(RAMA,null).then(cargar).catch(crudo);})
+    :leerDatos(RAMA,null).then(cargar).catch(crudo);
   fresco.catch(()=>{}).finally(()=>{if(!STORE.size)$("#main").innerHTML='<p class="empty">No se pudo cargar el archivo. Recarga la página.</p>';});
 });
 </script>
