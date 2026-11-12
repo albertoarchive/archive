@@ -1584,7 +1584,7 @@ const AU={ctx:null,master:null,rev:null,on:true,n:new Map(),hover:null,calm:1,st
       let g,f;
       if(!act.has(d.id)){g=0;f=300;}
       else if(hay){ // con hover: solo esa en primer plano; el resto, lejos y apagado
-        if(solo){g=vol;f=18000;}else{g=vol*.12*(.3+.7*w);f=250+600*w;}}
+        if(solo){g=vol;f=18000;}else{g=vol*.06*(.3+.7*w);f=60+140*w;}}
       else{ // sin hover: estructura radial, suena más y más nítido lo que está en el centro
         g=vol*(.05+.95*w)*Math.min(1,1.2/Math.sqrt(suma))*(1+.5*abr);f=250+17500*Math.pow(w,2)*mem;}
       x.g.gain.setTargetAtTime(g,t,.25);x.lp.frequency.setTargetAtTime(f,t,.25);
