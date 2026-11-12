@@ -484,7 +484,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const pad=n=>String(n).padStart(3,"0");
 const yr=d=>d.anio?String(d.anio):"Sin fechar";
-let EXTM={};const LOCALURL=new Map();const src=x=>LOCALURL.get(x)||(/^[0-9a-f]{32}$/.test(x)?"a/"+x+"."+(EXTM[x]||"webp"):"img/"+x);
+let EXTM={};const LOCALURL=new Map(),PUBLICADO=new Set();let CDN="https://cdn.jsdelivr.net/gh/albertoarchive/archive@main/a/";const src=x=>LOCALURL.get(x)||(/^[0-9a-f]{32}$/.test(x)?(PUBLICADO.has(x)?"a/":CDN)+x+"."+(EXTM[x]||"webp"):"img/"+x);
 const MW=d=>+d.ancho||80, H=d=>+d.alto||80, W=d=>d.aspecto?H(d)*d.aspecto:MW(d);
 let seed=Math.random();
 let db=null, assets=null, canEdit=false, editing=null;
@@ -1594,7 +1594,7 @@ const FN="/.netlify/functions/archivo";
 let CLAVE=null;try{CLAVE=localStorage.getItem("arch-clave")}catch(e){}
 const STORE=new Map(),LIS=[];let snapT=0;
 function emitir(){clearTimeout(snapT);snapT=setTimeout(()=>{const docs=[...STORE.values()].map(d=>({data:()=>d}));LIS.forEach(f=>f({empty:!docs.length,docs}));},30);}
-function cargar(d){EXTM=Object.assign(EXTM,d.ext||{});STORE.clear();(d.piezas||d).forEach(p=>STORE.set(p.id,p));emitir();}
+function cargar(d){EXTM=Object.assign(EXTM,d.ext||{});if(d._commit)CDN="https://cdn.jsdelivr.net/gh/albertoarchive/archive@"+d._commit+"/a/";STORE.clear();(d.piezas||d).forEach(p=>STORE.set(p.id,p));emitir();}
 const clon=o=>JSON.parse(JSON.stringify(o));
 
 /* Cola de cambios: se agrupan y se mandan juntos (un commit por envío) */
@@ -1613,7 +1613,7 @@ async function enviar(){
     while(Q.assets.length){let tam=0,pack=[];while(Q.assets.length&&(pack.length===0||tam+Q.assets[0].b64.length<3e6)){const a=Q.assets.shift();pack.push(a);tam+=a.b64.length;}
       try{await post({assets:pack});}catch(e){Q.assets.unshift(...pack);throw e;}}
     if(Q.ops.length){const ops=Q.ops.splice(0);try{await post({ops});}catch(e){Q.ops.unshift(...ops);throw e;}}
-    Q.fallos=0;estado("Guardado · la web se actualiza en un minuto","ok");setTimeout(()=>{if(!Q.ops.length&&!Q.assets.length&&!Q.busy)estado("");},6000);
+    Q.fallos=0;estado("Guardado","ok");setTimeout(()=>{if(!Q.ops.length&&!Q.assets.length&&!Q.busy)estado("");},6000);
   }catch(e){Q.fallos++;estado("No se pudo guardar: "+e.message+(CLAVE?" · reintento…":""),"err");if(CLAVE)Q.t=setTimeout(enviar,Math.min(60e3,4e3*Q.fallos));}
   finally{Q.busy=false;}
 }
@@ -1659,9 +1659,13 @@ db.collection("piezas").onSnapshot(snap=>{
   fromDb=true;RAW=snap.docs.map(x=>x.data());D=RAW.map(norm);computeColors();
   if(!editing){render();if(!$("#ficha").hidden&&cur())drawFicha();}
 },()=>{});
-fetch("data.json",{cache:"no-store"}).then(r=>r.json()).then(d=>{if(!STORE.size)cargar(d);
-  if(CLAVE)loginWeb(CLAVE).then(f=>{cargar(f);activar();}).catch(e=>{if(/incorrecta/.test(e.message))salir();});
-}).catch(()=>{$("#main").innerHTML='<p class="empty">No se pudo cargar el archivo. Recarga la página.</p>';});
+/* Primero lo publicado (rápido); luego lo último del repositorio, sin esperar a que Netlify publique */
+fetch("data.json",{cache:"no-store"}).then(r=>r.json()).then(d=>{Object.keys(d.ext||{}).forEach(k=>PUBLICADO.add(k));if(!STORE.size)cargar(d);}).catch(()=>{})
+.finally(()=>{
+  const fresco=CLAVE?loginWeb(CLAVE).then(f=>{cargar(f);activar();}).catch(e=>{if(/incorrecta/.test(e.message))salir();return fetch(FN,{cache:"no-store"}).then(r=>r.ok?r.json():null).then(f=>f&&cargar(f));})
+    :fetch(FN,{cache:"no-store"}).then(r=>r.ok?r.json():null).then(f=>f&&cargar(f));
+  fresco.catch(()=>{}).finally(()=>{if(!STORE.size)$("#main").innerHTML='<p class="empty">No se pudo cargar el archivo. Recarga la página.</p>';});
+});
 </script>
 
 </body></html>

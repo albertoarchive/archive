@@ -28,9 +28,15 @@ function aplicar(data, ops) {
 export default async (req) => {
   const clave = req.headers.get("x-clave") || "";
   if (!process.env.ARCHIVO_CLAVE || !process.env.GITHUB_TOKEN) return new Response("Falta configurar ARCHIVO_CLAVE o GITHUB_TOKEN en Netlify", { status: 500 });
-  if (clave !== process.env.ARCHIVO_CLAVE) return new Response("Contraseña incorrecta", { status: 401 });
+  const ok = clave === process.env.ARCHIVO_CLAVE;
   try {
-    if (req.method === "GET") return Response.json(await leer(await cabeza()), { headers: { "cache-control": "no-store" } });
+    // Lectura pública: los datos más recientes del repositorio (así no hace falta publicar en Netlify para verlos)
+    if (req.method === "GET") {
+      if (clave && !ok) return new Response("Contraseña incorrecta", { status: 401 });
+      const ref = await cabeza(); const d = await leer(ref); d._commit = ref;
+      return Response.json(d, { headers: { "cache-control": "no-store" } });
+    }
+    if (!ok) return new Response("Contraseña incorrecta", { status: 401 });
     if (req.method !== "POST") return new Response("", { status: 405 });
     const body = await req.json();
     const assets = (body.assets || []).filter(a => /^[0-9a-f]{32}$/.test(a.id) && EXTS.has(a.ext) && typeof a.b64 === "string");
@@ -41,7 +47,7 @@ export default async (req) => {
     for (let intento = 0; intento < 5; intento++) {
       const ref = await cabeza();
       const base = (await json(`/git/commits/${ref}`)).tree.sha;
-      const data = await leer(ref);
+      const data = await leer(ref); delete data._commit;
       data.ext = data.ext || {};
       blobs.forEach(b => data.ext[b.id] = b.ext);
       aplicar(data, ops);
@@ -49,7 +55,7 @@ export default async (req) => {
       tree.push({ path: "data.json", mode: "100644", type: "blob", content: JSON.stringify(data) });
       const t = await json("/git/trees", { method: "POST", body: JSON.stringify({ base_tree: base, tree }) });
       const n = ops.length, m = blobs.length;
-      const msg = `Web: ${[n && n + (n === 1 ? " cambio" : " cambios"), m && m + (m === 1 ? " archivo" : " archivos")].filter(Boolean).join(" y ")}`;
+      const msg = `[skip netlify] Web: ${[n && n + (n === 1 ? " cambio" : " cambios"), m && m + (m === 1 ? " archivo" : " archivos")].filter(Boolean).join(" y ")}`;
       const c = await json("/git/commits", { method: "POST", body: JSON.stringify({ message: msg, tree: t.sha, parents: [ref] }) });
       try { await gh(`/git/refs/heads/${BR}`, { method: "PATCH", body: JSON.stringify({ sha: c.sha, force: false }) }); return Response.json({ ok: true, commit: c.sha }); }
       catch (e) { if (e.status !== 422) throw e; } // alguien escribió a la vez: reintento sobre lo último
