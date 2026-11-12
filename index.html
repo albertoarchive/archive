@@ -485,7 +485,8 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const pad=n=>String(n).padStart(3,"0");
 const yr=d=>d.anio?String(d.anio):"Sin fechar";
-let EXTM={};const LOCALURL=new Map(),PUBLICADO=new Set();const CDN="https://raw.githubusercontent.com/albertoarchive/archive/main/a/";const src=x=>LOCALURL.get(x)||(/^[0-9a-f]{32}$/.test(x)?(PUBLICADO.has(x)?"a/":CDN)+x+"."+(EXTM[x]||"webp"):"img/"+x);
+let EXTM={};const LOCALURL=new Map(),PUBLICADO=new Set();const CDN="https://raw.githubusercontent.com/albertoarchive/archive/main/a/";const src=x=>LOCALURL.get(x)||(/^[0-9a-f]{32}$/.test(x)?(PUBLICADO.has(x)?"a/":CDN)+x+"."+(EXTM[x]||"webp"):"img/"+x);const THUMB=new Set();
+const srcT=x=>!LOCALURL.has(x)&&THUMB.has(x)?(PUBLICADO.has(x)?"t/":CDN.slice(0,-2)+"t/")+x+".webp":src(x); // miniatura para la galería (en la web pública apunta a t/)
 const MW=d=>+d.ancho||80, H=d=>+d.alto||80, W=d=>d.aspecto?H(d)*d.aspecto:MW(d);
 let seed=Math.random();
 let db=null, assets=null, canEdit=false, editing=null;
@@ -577,9 +578,12 @@ function computeColors(){
   const run=++colorRun, todo=D.filter(d=>!COL.has(d.id)||COL.get(d.id).src!==d.img[0]);
   if(!todo.length){colorsReady=true;return;}
   let left=todo.length;
-  todo.forEach(d=>{const im=new Image();im.decoding="async";
-    im.onload=()=>{try{const c=analyse(im);if(c){c.src=d.img[0];COL.set(d.id,c);}}catch(e){}done();};
-    im.onerror=done;im.src=src(d.img[0]);});
+  // de pocas en pocas y con miniaturas, para no frenar la carga de la galería
+  const cola=todo.slice();const uno=()=>{const d=cola.shift();if(!d)return;const im=new Image();im.decoding="async";
+    im.onload=()=>{try{const c=analyse(im);if(c){c.src=d.img[0];COL.set(d.id,c);}}catch(e){}done();sig();};
+    im.onerror=()=>{done();sig();};im.src=srcT(d.img[0]);};
+  const sig=()=>(window.requestIdleCallback||setTimeout)(uno,{timeout:400});
+  setTimeout(()=>{for(let k=0;k<4;k++)uno();},1500);
   function done(){if(--left===0&&run===colorRun){colorsReady=true;if(S.orden==="color"||S.color)P.sig="";render();if(!$("#ficha").hidden&&cur()&&!editing)drawFicha();}}
 }
 function countBy(key,fn,src=D){const m=new Map();src.forEach(d=>{const ks=fn?[fn(d)]:key==="ambito"?AMB(d):key==="ancla"?ANC(d):key==="sent"?(SENT(d).length?SENT(d).map(x=>x.s):["Sin sentimiento"]):[d[key]];ks.forEach(k=>{if(k==null||k==="")return;m.set(k,(m.get(k)||0)+1)})});return m;}
@@ -588,7 +592,7 @@ function tipoOrder(){const m=countBy("tipo");return [...m.keys()].sort((a,b)=>m.
 function famF(el){
   const pool=D.filter(d=>pasa(d,"tipo")),fm=countBy(null,FAM,pool),tm=countBy("tipo",null,pool);
   S.familia.forEach(k=>{if(!fm.has(k))fm.set(k,0)});S.tipo.forEach(k=>{if(!tm.has(k))tm.set(k,0)});
-  const thumb=f=>{const d=D.filter(f).sort((a,b)=>a.n-b.n)[0];return d?`<span class="ico"><img src="${src(d.img[0])}" alt="" loading="lazy"></span>`:`<span class="ico"></span>`;};
+  const thumb=f=>{const d=D.filter(f).sort((a,b)=>a.n-b.n)[0];return d?`<span class="ico"><img src="${srcT(d.img[0])}" alt="" loading="lazy"></span>`:`<span class="ico"></span>`;};
   const fams=FAM_ORDER.filter(f=>fm.has(f));
   el.innerHTML=fams.map(f=>{const ts=[...tm.keys()].filter(t=>(FAM_OF[t]||"Otros")===f||D.some(d=>d.tipo===t&&FAM(d)===f)).sort((a,b)=>tm.get(b)-tm.get(a)||a.localeCompare(b,"es"));
     return `<button class="fam" aria-pressed="${S.familia.has(f)}" data-fam="${esc(f)}" title="${esc(FAM_DEF[f]||"")}">${thumb(d=>FAM(d)===f)}<span>${esc(f)}</span><span class="n">${fm.get(f)}</span></button>`+
@@ -601,7 +605,7 @@ function famF(el){
 function rowsF(el,key,set,opts={}){
   const m=countBy(key,null,D.filter(d=>pasa(d,key)));set.forEach(k=>{if(!m.has(k))m.set(k,0);});let keys=[...m.keys()].sort((a,b)=>m.get(b)-m.get(a)||a.localeCompare(b,"es"));
   if(opts.q){const q=fold(opts.q).trim();keys=keys.filter(k=>fold(k).includes(q));}
-  el.innerHTML=keys.map(k=>{let ico="";if(opts.thumb){const d=D.filter(x=>x[key]===k).sort((a,b)=>a.n-b.n)[0];ico=`<span class="ico"><img src="${src(d.img[0])}" alt="" loading="lazy"></span>`;}
+  el.innerHTML=keys.map(k=>{let ico="";if(opts.thumb){const d=D.filter(x=>x[key]===k).sort((a,b)=>a.n-b.n)[0];ico=`<span class="ico"><img src="${srcT(d.img[0])}" alt="" loading="lazy"></span>`;}
     return `<button class="${k==="Sin ámbito"?"warn":""}" aria-pressed="${set.has(k)}" data-k="${esc(k)}">${ico}<span>${esc(k)}</span><span class="n">${m.get(k)}</span></button>`;}).join("")||`<p class="muted" style="margin:4px 8px">Sin coincidencias</p>`;
   el.querySelectorAll("button").forEach(b=>b.onclick=()=>{const k=b.dataset.k;set.has(k)?set.delete(k):set.add(k);render();});
 }
@@ -647,7 +651,7 @@ function renderFilters(){
 
 const ADEL=new Map();function adel(d){if(!ADEL.has(d.id))ADEL.set(d.id,((1-viva(d))*7+Math.random()*1.4).toFixed(2));return ADEL.get(d.id);}
 function pieceHTML(d,k,cap=true){
-  return `<button class="piece" data-id="${esc(d.id)}" style="--ad:${adel(d)}s;width:${(W(d)*k).toFixed(1)}px;height:${(H(d)*k).toFixed(1)}px" aria-label="${esc(d.titulo)}, ${esc(d.tipo)}, ${MW(d)} por ${H(d)} milímetros"><img src="${src(d.img[0])}" alt="" loading="lazy" draggable="false" data-px="${(Math.min(W(d),H(d))*k).toFixed(0)}" style="${fx(d,Math.min(W(d),H(d))*k)}">${cap?`<span class="cap mono">${esc(d.tipo)} · ${esc(d.titulo)} · ${MW(d)}×${H(d)} mm</span>`:""}</button>`;
+  return `<button class="piece" data-id="${esc(d.id)}" style="--ad:${adel(d)}s;width:${(W(d)*k).toFixed(1)}px;height:${(H(d)*k).toFixed(1)}px" aria-label="${esc(d.titulo)}, ${esc(d.tipo)}, ${MW(d)} por ${H(d)} milímetros"><img src="${srcT(d.img[0])}" alt="" loading="lazy" draggable="false" data-px="${(Math.min(W(d),H(d))*k).toFixed(0)}" style="${fx(d,Math.min(W(d),H(d))*k)}">${cap?`<span class="cap mono">${esc(d.tipo)} · ${esc(d.titulo)} · ${MW(d)}×${H(d)} mm</span>`:""}</button>`;
 }
 /* ---------- Memoria: desvanecimiento según cuánto se recuerda ---------- */
 /* Preguntas de memoria: propias de cada tipo de objeto + algunas generales.
@@ -748,7 +752,7 @@ function renderLienzo(r){
   LZ={items,TW,TH,tiles:new Map(),repeat:r.length>=14};
   return `<div class="lienzo" id="lz"><div class="lz-in" id="lzin"></div></div>`;
 }
-function tileHTML(){return LZ.items.map(it=>`<button class="piece" data-id="${esc(it.d.id)}" style="--ad:${adel(it.d)}s;position:absolute;left:${it.x.toFixed(1)}px;top:${it.y.toFixed(1)}px;width:${it.w.toFixed(1)}px;height:${it.h.toFixed(1)}px" aria-label="${esc(it.d.titulo)}, ${esc(it.d.tipo)}, ${MW(it.d)} por ${H(it.d)} milímetros"><img src="${src(it.d.img[0])}" alt="" draggable="false" data-px="${Math.min(it.w,it.h).toFixed(0)}" style="${fx(it.d,Math.min(it.w,it.h))}"><span class="cap mono">${esc(it.d.tipo)} · ${esc(it.d.titulo)} · ${MW(it.d)}×${H(it.d)} mm</span></button>`).join("");}
+function tileHTML(){return LZ.items.map(it=>`<button class="piece" data-id="${esc(it.d.id)}" style="--ad:${adel(it.d)}s;position:absolute;left:${it.x.toFixed(1)}px;top:${it.y.toFixed(1)}px;width:${it.w.toFixed(1)}px;height:${it.h.toFixed(1)}px" aria-label="${esc(it.d.titulo)}, ${esc(it.d.tipo)}, ${MW(it.d)} por ${H(it.d)} milímetros"><img src="${srcT(it.d.img[0])}" data-full="${src(it.d.img[0])}" data-w="${Math.max(it.w,it.h).toFixed(0)}" alt="" draggable="false" loading="lazy" decoding="async" data-px="${Math.min(it.w,it.h).toFixed(0)}" style="${fx(it.d,Math.min(it.w,it.h))}"><span class="cap mono">${esc(it.d.tipo)} · ${esc(it.d.titulo)} · ${MW(it.d)}×${H(it.d)} mm</span></button>`).join("");}
 function drawTiles(){
   if(!LZ||!$("#lzin"))return;
   const vw=innerWidth,vh=innerHeight,m=200;
@@ -773,7 +777,7 @@ function renderLista(r){
   const t=.32;
   const sw=`<div class="seg mono" style="margin:0 0 14px"><span class="muted" style="margin-right:8px">Índice por</span><button data-by="tipo" aria-pressed="${by==="tipo"}">Tipo</button><button data-by="ambito" aria-pressed="${by==="ambito"}">Ámbito</button></div>`;
   if(!r.length) return `<div class="list">${sw}<p class="empty">Ninguna pieza coincide con estos filtros. <button class="clear mono" data-clear style="text-decoration:underline">Limpiar filtros</button></p></div>`;
-  return `<div class="list">${sw}<table><thead><tr>${th("k",by==="tipo"?"Tipo":"Ámbito")}<th>${by==="tipo"?"Ámbitos":"Tipos"}</th><th class="hide-sm">Anclas</th>${th("anio","Año")}${th("n","Piezas")}<th class="hide-sm">Muestra a escala</th></tr></thead><tbody>${rows.map((r,i)=>(by==="tipo"&&(i===0||FAM(rows[i-1].v[0])!==FAM(r.v[0]))?`<tr class="famrow"><td colspan="6">${esc(FAM(r.v[0]))} <span>· ${rows.filter(x=>FAM(x.v[0])===FAM(r.v[0])).reduce((n,x)=>n+x.v.length,0)}</span></td></tr>`:"")+`<tr class="row" data-f="${by}" data-k="${esc(r.k)}" tabindex="0"><td class="name">${esc(r.k)}</td><td>${esc(r.otros)}</td><td class="hide-sm muted">${esc(r.anclas)}</td><td class="mono">${r.anio<9999?r.anio:"—"}</td><td class="mono">${r.v.length}</td><td class="hide-sm"><div class="thumbs">${r.v.slice(0,6).map(d=>`<img src="${src(d.img[0])}" alt="" loading="lazy" style="width:${(W(d)*t).toFixed(1)}px;height:${(H(d)*t).toFixed(1)}px">`).join("")}</div></td></tr>`).join("")}</tbody></table></div>`;
+  return `<div class="list">${sw}<table><thead><tr>${th("k",by==="tipo"?"Tipo":"Ámbito")}<th>${by==="tipo"?"Ámbitos":"Tipos"}</th><th class="hide-sm">Anclas</th>${th("anio","Año")}${th("n","Piezas")}<th class="hide-sm">Muestra a escala</th></tr></thead><tbody>${rows.map((r,i)=>(by==="tipo"&&(i===0||FAM(rows[i-1].v[0])!==FAM(r.v[0]))?`<tr class="famrow"><td colspan="6">${esc(FAM(r.v[0]))} <span>· ${rows.filter(x=>FAM(x.v[0])===FAM(r.v[0])).reduce((n,x)=>n+x.v.length,0)}</span></td></tr>`:"")+`<tr class="row" data-f="${by}" data-k="${esc(r.k)}" tabindex="0"><td class="name">${esc(r.k)}</td><td>${esc(r.otros)}</td><td class="hide-sm muted">${esc(r.anclas)}</td><td class="mono">${r.anio<9999?r.anio:"—"}</td><td class="mono">${r.v.length}</td><td class="hide-sm"><div class="thumbs">${r.v.slice(0,6).map(d=>`<img src="${srcT(d.img[0])}" alt="" loading="lazy" style="width:${(W(d)*t).toFixed(1)}px;height:${(H(d)*t).toFixed(1)}px">`).join("")}</div></td></tr>`).join("")}</tbody></table></div>`;
 }
 function renderTimeline(r){
   const hitos={"2024":"Madrid Salvaje, IFEMA, 27 y 28 de septiembre.","2025":"404 Not Found Vol. 2, La Mudanza, 5 de junio.","2026":"Bruselas: Magritte + Fine Arts, 19 de febrero.","Sin fechar":"Piezas pendientes de fecha. Situarlas es parte del trabajo del archivo."};
@@ -817,7 +821,13 @@ function zoomAt(cx,cy,f){if(!isLienzo())return;const nz=Math.min(ZMAX,Math.max(Z
 function zoomTo(z){zoomAt(innerWidth/2,innerHeight/2,z/P.z);}
 function sigNow(){return [S.disp,S.orden,S.size,S.q,S.color,S.tol,S.fade,...["ambito","ancla","tipo","familia","anio","lugar","proc","sent","nivel"].map(k=>[...S[k]].join("|")),S.cata].join("§");}
 function clampP(){}
-function applyP(){const m=$("#lzin");if(m)m.style.transform=`translate(${P.x}px,${P.y}px) scale(${P.z})`;drawTiles();renderScalebar();}
+function applyP(){const m=$("#lzin");if(m)m.style.transform=`translate(${P.x}px,${P.y}px) scale(${P.z})`;drawTiles();renderScalebar();clearTimeout(applyP.t);applyP.t=setTimeout(nitidez,250);}
+/* Al acercar, las piezas visibles cambian la miniatura por la imagen completa */
+/* Solo suenan (y se descargan) los sonidos de las piezas que están a la vista */
+function visiblesIds(){if(!isLienzo())return null;const vw=innerWidth,vh=innerHeight,s=new Set();document.querySelectorAll("#lzin .piece").forEach(p=>{const r=p.getBoundingClientRect();if(r.right>0&&r.bottom>0&&r.left<vw&&r.top<vh)s.add(p.dataset.id);});return s;}
+function nitidez(){if(typeof AU!=="undefined")AU.update();const k=(P.z||1)*(devicePixelRatio||1);if(k<1.2)return;const vw=innerWidth,vh=innerHeight;
+  document.querySelectorAll("#lzin img[data-full]").forEach(i=>{if(i.dataset.ok)return;if(+i.dataset.w*k<520)return;const r=i.getBoundingClientRect();if(r.right<0||r.bottom<0||r.left>vw||r.top>vh)return;
+    const f=i.dataset.full;if(i.getAttribute("src")===f){i.dataset.ok=1;return;}const im=new Image();im.onload=()=>{i.src=f;i.dataset.ok=1;};im.src=f;});}
 function initCanvas(){
   const sig=sigNow();
   if(sig!==P.sig){P.sig=sig;const off=innerWidth>860&&document.body.classList.contains("side-open")?320:0;
@@ -1426,12 +1436,12 @@ const AU={ctx:null,master:null,rev:null,on:true,n:new Map(),hover:null,calm:1,st
     this.rev.buffer=b;this.rev.connect(this.master);},
   start(){this.init();if(!this.ctx)return;this.ctx.resume();this.started=true;this.calm=0;this.master.gain.setTargetAtTime(this.on?1:0,this.ctx.currentTime,1.2);this.update();},
   node(d){let x=this.n.get(d.id);if(x&&x.src===d.sonido)return x;if(x){x.el.pause();x.el.src="";}
-    const c=this.ctx,el=new Audio(src(d.sonido));el.loop=true;el.preload="auto";
+    const c=this.ctx,el=new Audio(src(d.sonido));el.loop=true;el.preload="metadata";
     const s0=c.createMediaElementSource(el),lp=c.createBiquadFilter(),g=c.createGain(),dry=c.createGain(),wet=c.createGain();
     lp.type="lowpass";g.gain.value=0;s0.connect(lp);lp.connect(g);g.connect(dry);g.connect(wet);dry.connect(this.master);wet.connect(this.rev);
     x={el,lp,g,dry,wet,src:d.sonido,t:0};this.n.set(d.id,x);return x;},
   update(){if(!this.started||!this.ctx)return;const c=this.ctx,t=c.currentTime;
-    const act=new Set(filtered().filter(d=>d.sonido).map(d=>d.id)),con=D.filter(d=>d.sonido);
+    const vis=visiblesIds(),act=new Set(filtered().filter(d=>d.sonido&&(!vis||vis.has(d.id)||this.hover===d.id)).map(d=>d.id)),con=D.filter(d=>d.sonido&&(act.has(d.id)||this.n.has(d.id)));
     const nAct=Math.max(1,act.size),abr=1-this.calm; // abrumación: al entrar todo fuerte, se calma al moverte y con el tiempo
     con.forEach(d=>{const x=this.node(d),v=viva(d),I=INT(d),solo=this.hover===d.id,hay=this.hover&&act.has(this.hover);
       let vol=(I==null?.6:.3+.7*I/100)*(.35+.65*v);
@@ -1604,7 +1614,8 @@ const REPO="albertoarchive/archive",RAMA="main",API="https://api.github.com/repo
 let TOKEN=null;try{TOKEN=localStorage.getItem("arch-token")}catch(e){}
 const STORE=new Map(),LIS=[];let snapT=0;
 function emitir(){clearTimeout(snapT);snapT=setTimeout(()=>{const docs=[...STORE.values()].map(d=>({data:()=>d}));LIS.forEach(f=>f({empty:!docs.length,docs}));},30);}
-function cargar(d){EXTM=Object.assign(EXTM,d.ext||{});STORE.clear();(d.piezas||d).forEach(p=>STORE.set(p.id,p));emitir();}
+let ULTIMO="";
+function cargar(d){EXTM=Object.assign(EXTM,d.ext||{});(d.thumbs||[]).forEach(t=>THUMB.add(t));const j=JSON.stringify(d.piezas||d);if(j===ULTIMO)return;ULTIMO=j;STORE.clear();(d.piezas||d).forEach(p=>STORE.set(p.id,p));emitir();}
 const clon=o=>JSON.parse(JSON.stringify(o));
 
 /* GitHub */
@@ -1624,14 +1635,14 @@ function aplicar(data,ops){
 /* Un commit con los archivos nuevos y el data.json actualizado; si alguien escribió a la vez, se reintenta sobre lo último */
 async function commit(ops,assets){
   const blobs=[];
-  for(const a of assets){const b=await ghj("/git/blobs",{method:"POST",body:JSON.stringify({content:a.b64,encoding:"base64"})});blobs.push({path:`a/${a.id}.${a.ext}`,mode:"100644",type:"blob",sha:b.sha,id:a.id,ext:a.ext});}
+  for(const a of assets){const b=await ghj("/git/blobs",{method:"POST",body:JSON.stringify({content:a.b64,encoding:"base64"})});blobs.push({path:a.path||`a/${a.id}.${a.ext}`,mode:"100644",type:"blob",sha:b.sha,id:a.id,ext:a.ext,thumb:!!a.path});}
   for(let intento=0;intento<5;intento++){
     const ref=await cabeza(),base=(await ghj(`/git/commits/${ref}`)).tree.sha,data=await leerDatos(ref);
-    data.ext=data.ext||{};blobs.forEach(b=>data.ext[b.id]=b.ext);aplicar(data,ops);
+    data.ext=data.ext||{};data.thumbs=data.thumbs||[];blobs.forEach(b=>{if(b.thumb){if(!data.thumbs.includes(b.id))data.thumbs.push(b.id);}else data.ext[b.id]=b.ext;});aplicar(data,ops);
     const tree=blobs.map(({path,mode,type,sha})=>({path,mode,type,sha}));
     tree.push({path:"data.json",mode:"100644",type:"blob",content:JSON.stringify(data)});
     const t=await ghj("/git/trees",{method:"POST",body:JSON.stringify({base_tree:base,tree})});
-    const n=ops.length,m=blobs.length,msg="Web: "+[n&&n+(n===1?" cambio":" cambios"),m&&m+(m===1?" archivo":" archivos")].filter(Boolean).join(" y ");
+    const n=ops.length,m=blobs.filter(b=>!b.thumb).length,msg="Web: "+[n&&n+(n===1?" cambio":" cambios"),m&&m+(m===1?" archivo":" archivos")].filter(Boolean).join(" y ");
     const c=await ghj("/git/commits",{method:"POST",body:JSON.stringify({message:msg,tree:t.sha,parents:[ref]})});
     try{await gh(`/git/refs/heads/${RAMA}`,{method:"PATCH",body:JSON.stringify({sha:c.sha,force:false})});return;}
     catch(e){if(e.status!==422)throw e;}
@@ -1672,7 +1683,10 @@ const assetsWeb={async upload(blob,opt={}){
   const t=String(opt.type||blob.type||"").split(";")[0],ext=EXT_DE[t]||"bin";
   const id=[...crypto.getRandomValues(new Uint8Array(16))].map(b=>b.toString(16).padStart(2,"0")).join("");
   if(blob.size>20e6)throw new Error("Archivo demasiado grande (máx. 20 MB)");
-  Q.assets.push({id,ext,b64:await b64De(blob)});EXTM[id]=ext;LOCALURL.set(id,URL.createObjectURL(blob));encolar();
+  Q.assets.push({id,ext,b64:await b64De(blob)});EXTM[id]=ext;LOCALURL.set(id,URL.createObjectURL(blob));
+  if(/^image\//.test(t)){try{const bm=await createImageBitmap(blob),k=Math.min(1,560/Math.max(bm.width,bm.height)),c=document.createElement("canvas");c.width=Math.round(bm.width*k);c.height=Math.round(bm.height*k);c.getContext("2d").drawImage(bm,0,0,c.width,c.height);
+    const tb=await new Promise(ok=>c.toBlob(ok,"image/webp",.78));if(tb){Q.assets.push({id,ext:"webp",path:`t/${id}.webp`,b64:await b64De(tb)});THUMB.add(id);}}catch(e){}}
+  encolar();
   return {id,url:LOCALURL.get(id),contentType:t,sizeBytes:blob.size};}};
 
 /* Entrar / salir: el token se comprueba contra el repositorio y se guarda solo en este navegador */
