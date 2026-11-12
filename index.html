@@ -484,7 +484,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const pad=n=>String(n).padStart(3,"0");
 const yr=d=>d.anio?String(d.anio):"Sin fechar";
-let EXTM={};const LOCALURL=new Map(),PUBLICADO=new Set();let CDN="https://cdn.jsdelivr.net/gh/albertoarchive/archive@main/a/";const src=x=>LOCALURL.get(x)||(/^[0-9a-f]{32}$/.test(x)?(PUBLICADO.has(x)?"a/":CDN)+x+"."+(EXTM[x]||"webp"):"img/"+x);
+let EXTM={};const LOCALURL=new Map(),PUBLICADO=new Set();const CDN="https://raw.githubusercontent.com/albertoarchive/archive/main/a/";const src=x=>LOCALURL.get(x)||(/^[0-9a-f]{32}$/.test(x)?(PUBLICADO.has(x)?"a/":CDN)+x+"."+(EXTM[x]||"webp"):"img/"+x);
 const MW=d=>+d.ancho||80, H=d=>+d.alto||80, W=d=>d.aspecto?H(d)*d.aspecto:MW(d);
 let seed=Math.random();
 let db=null, assets=null, canEdit=false, editing=null;
@@ -1589,32 +1589,62 @@ async function exportWeb(){const b=$("#webBtn"),lab=b.querySelector("span"),old=
   lab.textContent=old;b.disabled=false;}
 $("#webBtn").onclick=exportWeb;
 $("#zIn").onclick=()=>zoomAt(innerWidth/2,innerHeight/2,1.25);$("#zOut").onclick=()=>zoomAt(innerWidth/2,innerHeight/2,.8);$("#zPct").onclick=()=>zoomTo(1);
-/* ---------- Web pública: datos en data.json; edición con contraseña (función de Netlify → GitHub) ---------- */
-const FN="/.netlify/functions/archivo";
-let CLAVE=null;try{CLAVE=localStorage.getItem("arch-clave")}catch(e){}
+/* ---------- Web pública (GitHub Pages): datos en data.json del repositorio; edición entrando con un token de GitHub ---------- */
+const REPO="albertoarchive/archive",RAMA="main",API="https://api.github.com/repos/"+REPO;
+let TOKEN=null;try{TOKEN=localStorage.getItem("arch-token")}catch(e){}
 const STORE=new Map(),LIS=[];let snapT=0;
 function emitir(){clearTimeout(snapT);snapT=setTimeout(()=>{const docs=[...STORE.values()].map(d=>({data:()=>d}));LIS.forEach(f=>f({empty:!docs.length,docs}));},30);}
-function cargar(d){EXTM=Object.assign(EXTM,d.ext||{});if(d._commit)CDN="https://cdn.jsdelivr.net/gh/albertoarchive/archive@"+d._commit+"/a/";STORE.clear();(d.piezas||d).forEach(p=>STORE.set(p.id,p));emitir();}
+function cargar(d){EXTM=Object.assign(EXTM,d.ext||{});STORE.clear();(d.piezas||d).forEach(p=>STORE.set(p.id,p));emitir();}
 const clon=o=>JSON.parse(JSON.stringify(o));
+
+/* GitHub */
+async function gh(p,o={},tok=TOKEN){const r=await fetch(API+p,{...o,cache:"no-store",headers:{Accept:"application/vnd.github+json",...(tok?{Authorization:"Bearer "+tok}:{}),...(o.headers||{})}});
+  if(!r.ok){const e=new Error(r.status===401?"El token no vale o ha caducado":r.status===403||r.status===404?"El token no tiene permiso de escritura en "+REPO:"GitHub "+r.status);e.status=r.status;throw e;}return r;}
+const ghj=(p,o,t)=>gh(p,o,t).then(r=>r.json());
+const leerDatos=(ref,tok)=>gh(`/contents/data.json?ref=${ref}`,{headers:{Accept:"application/vnd.github.raw+json"}},tok).then(r=>r.json());
+const cabeza=tok=>ghj(`/git/ref/heads/${RAMA}`,{},tok).then(r=>r.object.sha);
+
+function aplicar(data,ops){
+  const byId=new Map(data.piezas.map((p,i)=>[p.id,i]));
+  for(const o of ops){const i=byId.get(o.id);
+    if(o.op==="update"&&i!==undefined)Object.assign(data.piezas[i],o.data||{});
+    else if(o.op==="set"){const d={...(o.data||{}),id:o.id};if(i!==undefined)data.piezas[i]=d;else{byId.set(o.id,data.piezas.length);data.piezas.push(d);}}
+    else if(o.op==="delete"&&i!==undefined){data.piezas.splice(i,1);byId.clear();data.piezas.forEach((p,k)=>byId.set(p.id,k));}}
+}
+/* Un commit con los archivos nuevos y el data.json actualizado; si alguien escribió a la vez, se reintenta sobre lo último */
+async function commit(ops,assets){
+  const blobs=[];
+  for(const a of assets){const b=await ghj("/git/blobs",{method:"POST",body:JSON.stringify({content:a.b64,encoding:"base64"})});blobs.push({path:`a/${a.id}.${a.ext}`,mode:"100644",type:"blob",sha:b.sha,id:a.id,ext:a.ext});}
+  for(let intento=0;intento<5;intento++){
+    const ref=await cabeza(),base=(await ghj(`/git/commits/${ref}`)).tree.sha,data=await leerDatos(ref);
+    data.ext=data.ext||{};blobs.forEach(b=>data.ext[b.id]=b.ext);aplicar(data,ops);
+    const tree=blobs.map(({path,mode,type,sha})=>({path,mode,type,sha}));
+    tree.push({path:"data.json",mode:"100644",type:"blob",content:JSON.stringify(data)});
+    const t=await ghj("/git/trees",{method:"POST",body:JSON.stringify({base_tree:base,tree})});
+    const n=ops.length,m=blobs.length,msg="Web: "+[n&&n+(n===1?" cambio":" cambios"),m&&m+(m===1?" archivo":" archivos")].filter(Boolean).join(" y ");
+    const c=await ghj("/git/commits",{method:"POST",body:JSON.stringify({message:msg,tree:t.sha,parents:[ref]})});
+    try{await gh(`/git/refs/heads/${RAMA}`,{method:"PATCH",body:JSON.stringify({sha:c.sha,force:false})});return;}
+    catch(e){if(e.status!==422)throw e;}
+  }
+  throw new Error("conflicto al guardar");
+}
 
 /* Cola de cambios: se agrupan y se mandan juntos (un commit por envío) */
 const Q={ops:[],assets:[],t:0,busy:false,fallos:0};
 function estado(t,cls){const e=$("#wEstado");if(!e)return;e.hidden=!t;e.textContent=t||"";e.className="mono "+(cls||"");}
-function encolar(){clearTimeout(Q.t);Q.t=setTimeout(enviar,1500);estado("Guardando…");}
-async function post(body){const r=await fetch(FN,{method:"POST",headers:{"content-type":"application/json","x-clave":CLAVE||""},body:JSON.stringify(body)});
-  if(r.status===401){salir();throw new Error("La contraseña ya no vale. Vuelve a entrar.");}
-  if(!r.ok)throw new Error((await r.text()).slice(0,140)||("Error "+r.status));return r.json();}
+function encolar(){clearTimeout(Q.t);Q.t=setTimeout(enviar,2500);estado("Guardando…");}
 async function enviar(){
   if(Q.busy){Q.t=setTimeout(enviar,800);return;}
   if(!Q.ops.length&&!Q.assets.length)return;
   Q.busy=true;
   try{
-    // primero los archivos, en paquetes de ~3 MB
-    while(Q.assets.length){let tam=0,pack=[];while(Q.assets.length&&(pack.length===0||tam+Q.assets[0].b64.length<3e6)){const a=Q.assets.shift();pack.push(a);tam+=a.b64.length;}
-      try{await post({assets:pack});}catch(e){Q.assets.unshift(...pack);throw e;}}
-    if(Q.ops.length){const ops=Q.ops.splice(0);try{await post({ops});}catch(e){Q.ops.unshift(...ops);throw e;}}
+    // los archivos, en paquetes de ~20 MB; los cambios de datos van con el último paquete
+    do{let tam=0,pack=[];while(Q.assets.length&&(pack.length===0||tam+Q.assets[0].b64.length<2e7)){const a=Q.assets.shift();pack.push(a);tam+=a.b64.length;}
+      const ops=Q.assets.length?[]:Q.ops.splice(0);
+      try{await commit(ops,pack);}catch(e){Q.assets.unshift(...pack);Q.ops.unshift(...ops);throw e;}
+    }while(Q.assets.length||Q.ops.length);
     Q.fallos=0;estado("Guardado","ok");setTimeout(()=>{if(!Q.ops.length&&!Q.assets.length&&!Q.busy)estado("");},6000);
-  }catch(e){Q.fallos++;estado("No se pudo guardar: "+e.message+(CLAVE?" · reintento…":""),"err");if(CLAVE)Q.t=setTimeout(enviar,Math.min(60e3,4e3*Q.fallos));}
+  }catch(e){Q.fallos++;if(e.status===401){salir();}estado("No se pudo guardar: "+e.message+(TOKEN?" · reintento…":""),"err");if(TOKEN)Q.t=setTimeout(enviar,Math.min(60e3,4e3*Q.fallos));}
   finally{Q.busy=false;}
 }
 addEventListener("beforeunload",e=>{if(Q.ops.length||Q.assets.length||Q.busy){e.preventDefault();e.returnValue="";}});
@@ -1631,24 +1661,25 @@ const b64De=b=>new Promise((ok,ko)=>{const r=new FileReader();r.onload=()=>ok(St
 const assetsWeb={async upload(blob,opt={}){
   const t=String(opt.type||blob.type||"").split(";")[0],ext=EXT_DE[t]||"bin";
   const id=[...crypto.getRandomValues(new Uint8Array(16))].map(b=>b.toString(16).padStart(2,"0")).join("");
-  if(blob.size>4.2e6)throw new Error("Archivo demasiado grande (máx. 4 MB)");
+  if(blob.size>20e6)throw new Error("Archivo demasiado grande (máx. 20 MB)");
   Q.assets.push({id,ext,b64:await b64De(blob)});EXTM[id]=ext;LOCALURL.set(id,URL.createObjectURL(blob));encolar();
   return {id,url:LOCALURL.get(id),contentType:t,sizeBytes:blob.size};}};
 
-/* Entrar / salir */
-async function loginWeb(clave){const r=await fetch(FN,{headers:{"x-clave":clave},cache:"no-store"});
-  if(r.status===401)throw new Error("Contraseña incorrecta");if(!r.ok)throw new Error("No se pudo conectar ("+r.status+")");return r.json();}
+/* Entrar / salir: el token se comprueba contra el repositorio y se guarda solo en este navegador */
+async function loginWeb(tok){
+  const r=await ghj("",{},tok);if(!r.permissions||!r.permissions.push)throw new Error("Ese token no puede escribir en "+REPO);
+  return leerDatos(await cabeza(tok),tok);}
 function activar(){canEdit=true;assets=assetsWeb;$("#addBtn").hidden=false;$("#syncBtn").hidden=false;$("#loginBtn").textContent="Salir";document.body.classList.add("editor");P.sig="";render();}
-function salir(){CLAVE=null;try{localStorage.removeItem("arch-clave")}catch(e){}canEdit=false;assets=null;$("#addBtn").hidden=true;$("#syncBtn").hidden=true;$("#loginBtn").textContent="Entrar";document.body.classList.remove("editor");if(!$("#ficha").hidden)drawFicha();render();}
+function salir(){TOKEN=null;try{localStorage.removeItem("arch-token")}catch(e){}canEdit=false;assets=null;$("#addBtn").hidden=true;$("#syncBtn").hidden=true;$("#loginBtn").textContent="Entrar";document.body.classList.remove("editor");if(!$("#ficha").hidden)drawFicha();render();}
 function loginForm(){
   if(canEdit){if(Q.ops.length||Q.assets.length){estado("Espera a que se guarde antes de salir","err");return;}salir();return;}
   let f=$("#wLogin");if(f){f.remove();return;}
   f=document.createElement("form");f.id="wLogin";f.className="card2 wlogin";
-  f.innerHTML=`<label class="mono" for="wClave">Contraseña del archivo</label><div class="wrow"><input id="wClave" type="password" autocomplete="current-password" required><button class="mono">Entrar</button></div><p class="mono muted" id="wMsg"></p>`;
+  f.innerHTML=`<label class="mono" for="wClave">Token de GitHub</label><div class="wrow"><input id="wClave" type="password" autocomplete="off" placeholder="github_pat_…" required><button class="mono">Entrar</button></div><p class="mono muted" id="wMsg">Se guarda solo en este navegador.</p>`;
   document.body.appendChild(f);$("#wClave").focus();
   f.onkeydown=e=>{if(e.key==="Escape")f.remove();};
-  f.onsubmit=async e=>{e.preventDefault();const c=$("#wClave").value;$("#wMsg").textContent="Comprobando…";
-    try{const d=await loginWeb(c);CLAVE=c;try{localStorage.setItem("arch-clave",c)}catch(_){}cargar(d);f.remove();activar();}
+  f.onsubmit=async e=>{e.preventDefault();const c=$("#wClave").value.trim();$("#wMsg").textContent="Comprobando…";
+    try{const d=await loginWeb(c);TOKEN=c;try{localStorage.setItem("arch-token",c)}catch(_){}cargar(d);f.remove();activar();}
     catch(err){$("#wMsg").textContent=err.message;}};
 }
 $("#loginBtn").onclick=loginForm;
@@ -1659,11 +1690,11 @@ db.collection("piezas").onSnapshot(snap=>{
   fromDb=true;RAW=snap.docs.map(x=>x.data());D=RAW.map(norm);computeColors();
   if(!editing){render();if(!$("#ficha").hidden&&cur())drawFicha();}
 },()=>{});
-/* Primero lo publicado (rápido); luego lo último del repositorio, sin esperar a que Netlify publique */
+/* Primero lo publicado (rápido); luego lo último del repositorio, sin esperar a que se publique */
 fetch("data.json",{cache:"no-store"}).then(r=>r.json()).then(d=>{Object.keys(d.ext||{}).forEach(k=>PUBLICADO.add(k));if(!STORE.size)cargar(d);}).catch(()=>{})
 .finally(()=>{
-  const fresco=CLAVE?loginWeb(CLAVE).then(f=>{cargar(f);activar();}).catch(e=>{if(/incorrecta/.test(e.message))salir();return fetch(FN,{cache:"no-store"}).then(r=>r.ok?r.json():null).then(f=>f&&cargar(f));})
-    :fetch(FN,{cache:"no-store"}).then(r=>r.ok?r.json():null).then(f=>f&&cargar(f));
+  const fresco=TOKEN?loginWeb(TOKEN).then(f=>{cargar(f);activar();}).catch(e=>{if(e.status===401)salir();return leerDatos(RAMA,null).then(cargar);})
+    :leerDatos(RAMA,null).then(cargar);
   fresco.catch(()=>{}).finally(()=>{if(!STORE.size)$("#main").innerHTML='<p class="empty">No se pudo cargar el archivo. Recarga la página.</p>';});
 });
 </script>
