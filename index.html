@@ -551,6 +551,13 @@ body.ui-off main{padding-left:var(--pad)}
   .views{border-bottom:1px solid var(--rule)}
 }
 @media (prefers-reduced-motion:reduce){.u-tabla tr{animation:none;opacity:1}}
+/* barra de arriba: todo a la misma altura y en la misma línea */
+.topr{align-items:center;gap:6px}
+.topr .ibtn{height:32px;min-width:32px;box-sizing:border-box}
+.searchbox{height:32px;border-radius:0;background:var(--bg);box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;box-sizing:border-box}
+.searchbox.open,.searchbox.has{border:1px solid var(--rule)}
+.searchbox.open .ibtn,.searchbox.has .ibtn{border:0!important;height:30px}
+.searchbox input{font-family:var(--f-mono);font-size:12px}
 .list th,.list th button{font-family:var(--f-ui);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;font-weight:500}
 .list thead tr{border-bottom:1px solid var(--rule)}
 .list td{font-family:var(--f-mono);font-size:12px}
