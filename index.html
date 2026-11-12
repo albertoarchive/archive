@@ -541,7 +541,6 @@ function filtered(){
   else if(S.orden==="ambito") r.sort(byCount("ambito"));
   else if(S.orden==="nombre") r.sort((a,b)=>a.titulo.localeCompare(b.titulo,"es"));
   else if(S.orden==="reciente") r.sort((a,b)=>(b.anio||0)-(a.anio||0)||a.n-b.n);
-  else if(S.orden==="recuerdo") r.sort((a,b)=>(viva(b)-viva(a))||a.n-b.n);
   else if(S.orden==="tamano") r.sort((a,b)=>W(b)*H(b)-W(a)*H(a));
   else if(S.orden==="aleatorio"){const h=x=>Math.sin(x*9301+seed*4973)%1; r.sort((a,b)=>h(a.n)-h(b.n));}
   return r;
@@ -669,7 +668,7 @@ function renderFilters(){
   const nm=countBy("nivel");
   $("#colSw").style.background=S.color||"conic-gradient(red,yellow,lime,cyan,blue,magenta,red)";
   $("#colTxt").textContent=S.color?S.color.toUpperCase():(colorsReady?"Cualquiera":"Analizando…");
-  selectF($("#f-orden"),[["registro","Registro"],["color","Color"],["tipo","Tipo"],["ambito","Ámbito"],["recuerdo","Recuerdo"],["tamano","Tamaño"],["reciente","Año, reciente primero"],["nombre","Nombre"],["aleatorio","Aleatorio"]],S.orden,v=>{S.orden=v;if(v==="aleatorio")seed=Math.random();render();});
+  selectF($("#f-orden"),[["registro","Registro"],["color","Color"],["tipo","Tipo"],["ambito","Ámbito"],["tamano","Tamaño"],["reciente","Año, reciente primero"],["nombre","Nombre"],["aleatorio","Aleatorio"]],S.orden,v=>{S.orden=v;if(v==="aleatorio")seed=Math.random();render();});
   const resp=D.filter(d=>recuerdo(d)!==null).length;
   selectF($("#f-fade"),[["desenfoque","Desenfoque"],["fundido",`Fundido a blanco`],["disolucion","Disolución"],["no","Sin desvanecer"]],S.fade,v=>{S.fade=v;render();});
   $("#f-fade").title=`${resp} de ${D.length} piezas con preguntas respondidas`;
