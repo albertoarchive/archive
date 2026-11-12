@@ -3,7 +3,7 @@
 <title>Archivo personal</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
 <style>
 /* Layout: mesa blanca donde cada pieza aparece a su tamaño real relativo; la interfaz vive en las esquinas. */
 :root{
@@ -551,6 +551,8 @@ body.ui-off main{padding-left:var(--pad)}
   .views{border-bottom:1px solid var(--rule)}
 }
 @media (prefers-reduced-motion:reduce){.u-tabla tr{animation:none;opacity:1}}
+.u-frases{margin:0;display:flex;flex-direction:column;gap:3px;max-width:none!important}
+@media (min-width:861px){.u-frases span{white-space:nowrap}}
 /* barra de arriba: todo a la misma altura y en la misma línea */
 .topr{align-items:center;gap:6px}
 .topr .ibtn{height:32px;min-width:32px;box-sizing:border-box}
@@ -562,50 +564,6 @@ body.ui-off main{padding-left:var(--pad)}
 .list thead tr{border-bottom:1px solid var(--rule)}
 .list td{font-family:var(--f-mono);font-size:12px}
 #entrar.sello{margin-right:6px}
-/* ================= Capa revista: serif de titular, grotesca negra, collage, puntos, créditos en vertical ================= */
-:root{--f-serif:"Newsreader","Iowan Old Style","Times New Roman",serif}
-.u-libro{max-width:none;width:100%;min-height:100%;box-sizing:border-box;display:flex;flex-direction:column;padding:14px var(--padr) 16px var(--pad)}
-.u-cab{grid-template-columns:1.2fr .6fr 1.4fr 1.6fr}
-.u-cab>div{padding:6px 10px 7px;gap:3px;min-width:0}
-@media (max-width:860px){.u-t{right:4%;font-size:19px}.u-t b{display:block}}
-.u-cab .v{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.u-col{position:relative;flex:1;min-height:460px;margin:14px 0 18px}
-.u-w{position:absolute;z-index:2;margin:0;font-family:var(--f-serif);font-variation-settings:"opsz" 72;font-weight:400;letter-spacing:-.035em;line-height:.8;font-size:clamp(78px,13vw,215px);color:var(--fg);pointer-events:none}
-.u-w1{left:21%;top:1%}
-.u-w2{right:5%;bottom:3%}
-.u-t{position:absolute;z-index:4;left:37%;top:45%;margin:0;font-family:var(--f-ui);font-size:clamp(17px,1.9vw,27px);letter-spacing:-.02em;line-height:1.05;color:var(--muted);font-weight:500}
-.u-t b{color:var(--fg);font-weight:700}
-.u-anc{position:absolute;z-index:3;left:0;top:0;margin:0;padding:0;list-style:none;font-family:var(--f-ui);font-weight:700;font-size:13px;line-height:1.24;letter-spacing:-.01em;max-height:100%;overflow:hidden}
-.u-anc li{white-space:nowrap}
-#u-fotos{position:absolute;inset:0}
-.u-f{position:absolute;margin:0;background:var(--paper);display:flex;align-items:center;justify-content:center;overflow:hidden}
-.u-f img{max-width:86%;max-height:86%;object-fit:contain;filter:var(--shadow)}
-.u-f.claro{opacity:.42;filter:grayscale(.4)}
-.u-f figcaption{position:absolute;left:6px;bottom:4px;font-family:var(--f-mono);font-size:10px;color:var(--sello)}
-.u-dot{position:absolute;z-index:4;width:clamp(18px,2.2vw,34px);aspect-ratio:1;border-radius:50%;background:var(--fg)}
-.u-dot.d1{left:30.5%;top:43.5%}.u-dot.d2{left:62%;top:55%}.u-dot.d3{left:59.6%;top:53.5%;width:12px;background:#bdbdb8}
-.u-pie{margin-top:0}
-.u-frases{margin:0;max-width:none!important;display:flex;flex-direction:column;gap:2px}
-.u-frases span{white-space:nowrap}
-@media (max-width:860px){
-  .u-cab{grid-template-columns:1fr 1fr}.u-cab>div:nth-child(3),.u-cab>div:nth-child(4){border-top:1px solid var(--rule)}.u-cab>div:nth-child(3){border-left:0}.u-cab>div:first-child{grid-column:auto;border-bottom:0}
-  .u-col{min-height:62vh}.u-anc{display:none}.u-w1{left:0}.u-t{left:4%;top:42%}
-  .u-frases span{white-space:normal}
-}
-.side-head .brand,.brand{font-family:var(--f-serif);font-variation-settings:"opsz" 36;font-weight:400;font-size:19px;letter-spacing:-.02em}
-.f-meta h1{font-family:var(--f-serif);font-variation-settings:"opsz" 72;font-weight:400;font-size:clamp(34px,3.4vw,52px);line-height:.98;letter-spacing:-.03em;margin:10px 0 18px}
-.f-kick{display:flex;align-items:center;gap:7px}
-.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--fg);flex:none}
-.pie{font-family:var(--f-ui);font-size:18px;line-height:1.28;letter-spacing:-.012em;max-width:34ch;font-weight:500}
-.pie.muted{font-weight:400}
-.nota.full{font-family:var(--f-serif);font-variation-settings:"opsz" 12;font-size:15px;line-height:1.5;border:0;border-top:1px solid var(--rule);padding:10px 0 0;max-width:52ch}
-.nota.full b{font-family:var(--f-ui);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;font-weight:500;color:var(--muted);margin-bottom:8px}
-.stage{position:relative}
-.f-cred{position:absolute;left:calc(var(--pad) + 2px);bottom:70px;margin:0;writing-mode:vertical-rl;transform:rotate(180deg);color:var(--fg);white-space:nowrap}
-.f-folio{position:absolute;left:var(--pad);right:var(--pad);bottom:12px;margin:0;display:flex;justify-content:space-between;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);pointer-events:none}
-.stage-foot{margin-bottom:22px}
-.year h2{font-family:var(--f-serif);font-variation-settings:"opsz" 72;font-weight:400;letter-spacing:-.04em;font-size:clamp(44px,6vw,84px)}
-.list tr.famrow td{font-family:var(--f-serif);font-variation-settings:"opsz" 48;font-size:26px;letter-spacing:-.02em;text-transform:none;color:var(--fg);padding-top:28px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -702,19 +660,15 @@ body.ui-off main{padding-left:var(--pad)}
 <main id="main"><p class="empty">Cargando el archivo…</p></main>
 <div class="umbral" id="umbral" role="dialog" aria-modal="true" aria-labelledby="u-t"><div class="u-libro">
   <div class="u-cab">
-    <div><span class="lbl">Libro de registro</span><span class="v">archivo.personal</span></div>
+    <div><span class="lbl">Libro de registro</span><h1>archivo.personal</h1></div>
     <div><span class="lbl">Nº de piezas</span><span class="v" id="u-n">—</span></div>
     <div><span class="lbl">Última entrada</span><span class="v" id="u-ult">—</span></div>
-    <div><span class="lbl">Procedencia</span><span class="v">Proyectos Experimentales · IED Madrid · 2026</span></div>
   </div>
-  <div class="u-col" id="u-col">
-    <p class="u-w u-w1" aria-hidden="true">archivo</p>
-    <p class="u-t" id="u-t"><b>Los recuerdos</b> no vuelven todos a la vez</p>
-    <p class="u-w u-w2" aria-hidden="true">personal</p>
-    <ol class="u-anc" id="u-anc" aria-label="Anclas del archivo"></ol>
-    <i class="u-dot d1"></i><i class="u-dot d2"></i><i class="u-dot d3"></i>
-    <div id="u-fotos"></div>
+  <div class="u-cab2">
+    <div><span class="lbl">Objeto del archivo</span><p class="u-t" id="u-t">Los recuerdos no vuelven todos a la vez.</p></div>
+    <div><span class="lbl">Procedencia</span><span class="v mono" style="font-size:12px">Proyectos Experimentales · IED Madrid · 2026</span></div>
   </div>
+  <table class="u-tabla" aria-label="Últimas entradas del registro"><thead><tr><th>Nº</th><th>Objeto</th><th>Tipo</th><th class="hm">Lugar</th><th class="hm">Año</th></tr></thead><tbody id="u-filas"></tbody></table>
   <div class="u-pie"><p class="lbl u-frases"><span>Mejor con sonido.</span><span>Todas las piezas a la misma escala, en proporción a su medida real.</span></p><button id="entrar" class="sello">Entrar</button></div>
 </div></div>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="tinta"><feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="2" seed="4"/><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.6 1.75"/><feComposite in="SourceGraphic" operator="in"/></filter></svg>
@@ -755,16 +709,10 @@ const S={view:"galeria",sent:new Set(),cata:true,familia:new Set(),lugar:new Set
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const pad=n=>String(n).padStart(3,"0");
-/* Portada: hoja de registro con collage de piezas (las desvanecidas, más claras) y la lista de anclas */
-let libroN=-1;function llenarLibro(){if(!$("#u-col")||typeof D==="undefined"||!D.length||D.length===libroN)return;libroN=D.length;
-  const ult=[...D].sort((a,b)=>b.n-a.n);$("#u-n").textContent=String(D.length);$("#u-ult").textContent="Nº "+pad(ult[0].n)+" · "+ult[0].titulo;
-  const cnt=new Map();D.forEach(d=>ANC(d).forEach(a=>{if(a!=="Sin ancla")cnt.set(a,(cnt.get(a)||0)+1);}));
-  $("#u-anc").innerHTML=[...cnt.entries()].sort((a,b)=>b[1]-a[1]).slice(0,34).map(([a])=>`<li>${esc(a)}</li>`).join("");
-  // nueve piezas, distintas cada día; cada hueco tiene su sitio y algunas salen claras, como lo que se olvida
-  const dia=Math.floor(Date.now()/864e5),con=D.filter(d=>d.img&&d.img[0]),pick=[];let k=dia*7919;
-  while(pick.length<Math.min(9,con.length)){k=(k*48271+11)%2147483647;const d=con[k%con.length];if(!pick.includes(d))pick.push(d);}
-  const H=[[17,3,15,34,1],[34,12,11,24,0],[69,0,23,46,0],[51,23,9,20,1],[6,52,13,26,0],[29,55,14,22,1],[56,49,15,30,0],[79,53,14,42,0],[18,80,17,20,1]];
-  $("#u-fotos").innerHTML=pick.map((d,i)=>{const[x,y,w,h,f]=H[i];return `<figure class="u-f${f?" claro":""}" style="left:${x}%;top:${y}%;width:${w}%;height:${h}%;z-index:${i===2||i===6?3:1}"><img src="${srcT(d.img[0])}" alt="" loading="eager" decoding="async"><figcaption>Nº ${pad(d.n)}</figcaption></figure>`;}).join("");}
+/* Portada: el libro de registro con las últimas entradas, en cuanto hay datos */
+let libroN=-1;function llenarLibro(){if(!$("#u-filas")||typeof D==="undefined"||!D.length||D.length===libroN)return;libroN=D.length;
+  const ult=[...D].sort((a,b)=>b.n-a.n).slice(0,12);$("#u-n").textContent=String(D.length);$("#u-ult").textContent="Nº "+pad(ult[0].n);
+  $("#u-filas").innerHTML=ult.map((d,i)=>`<tr style="--i:${i}"><td>${pad(d.n)}</td><td>${esc(d.titulo)}</td><td>${esc(d.tipo)}</td><td class="hm">${esc(normLugar(d.lugar)||"—")}</td><td class="hm">${d.anio||"s/f"}</td></tr>`).join("");}
 (function espera(){llenarLibro();if(!$("#umbral")||!$("#umbral").classList.contains("fuera"))setTimeout(espera,400);})();
 const yr=d=>d.anio?String(d.anio):"Sin fechar";
 let EXTM={};const LOCALURL=new Map(),PUBLICADO=new Set();const CDN="https://raw.githubusercontent.com/albertoarchive/archive/datos/a/";const src=x=>LOCALURL.get(x)||(/^[0-9a-f]{32}$/.test(x)?(PUBLICADO.has(x)?"a/":CDN)+x+"."+(EXTM[x]||"webp"):"img/"+x);const THUMB=new Set();
@@ -1182,10 +1130,10 @@ function drawFicha(){
   const d=cur(); if(!d){closeFicha();return;}
   const f=$("#ficha"), idx=curList.indexOf(d.id), two=d.img.length>1||!!(editing&&editing.previews[1]), lv=NIVELES.indexOf(d.nivel);
   f.innerHTML=`<div class="fnav mono"><button id="f-close">← Volver</button><span class="arrows">${canEdit&&!editing?`<button class="editbtn" id="f-edit">Editar</button>`:""}<span class="muted">${pad(d.n)} · ${idx+1} de ${curList.length}</span><button id="f-prev" aria-label="Anterior">←</button><button id="f-next" aria-label="Siguiente">→</button></span></div>
-  <div class="stage"><p class="f-cred lbl" aria-hidden="true">Registro CMN-${pad(d.n)} · Fotografía y catalogación Alberto Herrera Cameno</p><p class="f-folio mono" aria-hidden="true"><span>archivo.personal</span><span>Libro de registro</span><span>${pad(d.n)}</span></p><div class="stage-in"><div class="card" id="card" tabindex="0" role="img" aria-label="${esc(d.titulo)}. Arrastra para girar."><div class="face front"><img style="${editing||!S.fichaFade?"":fx(d,240)}" src="${(editing&&editing.previews[0])||src(d.img[0])}" alt="${esc(d.pie)}" draggable="false"></div><div class="face back ${two?"":"blank"}">${two?`<img src="${(editing&&editing.previews[1])||src(d.img[1])}" alt="Reverso" draggable="false">`:"Sin reverso registrado"}</div></div></div>
+  <div class="stage"><div class="stage-in"><div class="card" id="card" tabindex="0" role="img" aria-label="${esc(d.titulo)}. Arrastra para girar."><div class="face front"><img style="${editing||!S.fichaFade?"":fx(d,240)}" src="${(editing&&editing.previews[0])||src(d.img[0])}" alt="${esc(d.pie)}" draggable="false"></div><div class="face back ${two?"":"blank"}">${two?`<img src="${(editing&&editing.previews[1])||src(d.img[1])}" alt="Reverso" draggable="false">`:"Sin reverso registrado"}</div></div></div>
   <div class="stage-foot mono"><span class="sides"><button aria-pressed="true" data-s="0">Anverso</button><button aria-pressed="false" data-s="1">Reverso</button></span><span class="hint">Arrastra para girar</span><span class="seg" id="fscale"><button data-k="mesa" aria-pressed="${fScale==="mesa"}">Escala común</button><button data-k="ajustar" aria-pressed="${fScale==="ajustar"}">Ampliar</button><button data-k="real" aria-pressed="${fScale==="real"}">1:1</button></span><span class="muted" id="esc"></span></div></div>
   <div class="f-meta" id="fmeta"></div>`;
-  $("#fmeta").innerHTML=editing?editorHTML(editing):`<div class="f-reg"><span class="lbl">Ficha de catalogación</span><span class="regn">Nº ${pad(d.n)}</span><span class="f-sub">${esc(normLugar(d.lugar)||"Sin lugar")} · ${d.anio||"s/f"}</span><span class="sello">${esc(d.nivel||"Registrado")}</span></div><div class="mono muted f-kick"><i class="dot"></i><button data-f="tipo" data-k="${esc(d.tipo)}" style="text-decoration:underline;text-underline-offset:3px">${esc(d.tipo)}</button> · ${esc(AMB(d).join(", "))}</div><h1 id="f-title">${esc(d.titulo)}</h1>${d.pie?`<p class="pie">${esc(d.pie)}</p>`:`<p class="pie muted">Sin pie todavía.</p>`}
+  $("#fmeta").innerHTML=editing?editorHTML(editing):`<div class="f-reg"><span class="lbl">Ficha de catalogación</span><span class="regn">Nº ${pad(d.n)}</span><span class="f-sub">${esc(normLugar(d.lugar)||"Sin lugar")} · ${d.anio||"s/f"}</span><span class="sello">${esc(d.nivel||"Registrado")}</span></div><div class="mono muted"><button data-f="tipo" data-k="${esc(d.tipo)}" style="text-decoration:underline;text-underline-offset:3px">${esc(d.tipo)}</button> · ${esc(AMB(d).join(", "))}</div><h1 id="f-title">${esc(d.titulo)}</h1>${d.pie?`<p class="pie">${esc(d.pie)}</p>`:`<p class="pie muted">Sin pie todavía.</p>`}
   <dl><dt>Tipo</dt><dd><button data-f="familia" data-k="${esc(FAM(d))}">${esc(FAM(d))}</button> <span class="muted">›</span> <button data-f="tipo" data-k="${esc(d.tipo)}">${esc(d.tipo)}</button></dd>
   <dt>${AMB(d).length>1?"Ámbitos":"Ámbito"}</dt><dd class="tags">${AMB(d).map(a=>`<button class="tag${a==="Sin ámbito"?" warn":""}" data-f="ambito" data-k="${esc(a)}" title="${esc(AMB_DEF[a]||"Falta elegir un ámbito: pulsa Editar")}">#${esc(a)}</button>`).join(" ")}</dd>
   ${(()=>{const an=ANC(d).filter(a=>a!=="Sin ancla"),L=normLugar(d.lugar);return an.length===1&&L&&an[0]===L?`<dt>Ancla y lugar</dt><dd><button data-f="ancla" data-k="${esc(L)}">${esc(L)}</button>${PAIS[L]&&PAIS[L]!==L?`<span class="muted"> · ${esc(PAIS[L])}</span>`:""}</dd>`:"";})()}
