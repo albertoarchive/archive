@@ -23,7 +23,7 @@
 .mapa{position:absolute;inset:0;overflow:hidden;background:var(--bg)}
 .mp-in{position:absolute;left:0;top:0;transform-origin:0 0}
 .mp-in svg{display:block;overflow:visible}
-.mp-in path{fill:var(--paper);stroke:#cfcfca;stroke-width:.8;vector-effect:non-scaling-stroke;stroke-linejoin:round}
+.mp-in path{fill:var(--paper);stroke:#cfcfca;stroke-width:calc(.9px / var(--z,1));stroke-linejoin:round}
 .mp-st{position:absolute;inset:0;pointer-events:none;z-index:1;isolation:isolate}
 .mst{position:absolute;pointer-events:auto;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:6px;background:none;cursor:pointer}
 .mst-pila{position:relative;display:block;width:var(--sz);height:var(--sz)}
@@ -39,6 +39,11 @@
 .mpc-h b{font-weight:600}
 .mpc-x{font-size:16px;line-height:1;padding:0 4px}
 .mpc-def{font-size:11px;margin:-4px 0 10px}
+.mpc-s{font-size:11px;margin:12px 0 6px;padding-top:10px;border-top:1px solid var(--line)}
+.mpc-s:first-of-type{border-top:0;padding-top:0;margin-top:0}
+.mst-lin{position:absolute;overflow:visible;width:1px;height:1px;pointer-events:none}
+.mst-lin line{stroke:var(--muted);stroke-width:1;stroke-dasharray:2 3}
+.mst-lin circle{fill:var(--fg)}
 .mpc-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:10px}
 .mpc-p{aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:none;border-radius:6px}
 .mpc-p:hover{background:var(--chip)}
@@ -1469,7 +1474,7 @@ const COORD={"Amberes":[51.22,4.40],"Aranjuez":[40.03,-3.60],"Barcelona":[41.39,
 const SINLUGAR=[45.2,-15.5]; // en el mar: lo que no se sabe de dónde viene
 function prj(lat,lon){const L0=4*Math.PI/180,P0=47*Math.PI/180,R=1600,l=lon*Math.PI/180-L0,p=lat*Math.PI/180,
   k=Math.sqrt(2/(1+Math.sin(P0)*Math.sin(p)+Math.cos(P0)*Math.cos(p)*Math.cos(l)));return [R*k*Math.cos(p)*Math.sin(l),-R*k*(Math.cos(P0)*Math.sin(p)-Math.sin(P0)*Math.cos(p)*Math.cos(l))];}
-const MP={x:0,y:0,z:1,fit:false,drag:null,abierto:null,pin:false};
+const MP={x:0,y:0,z:1,fit:false,drag:null,abierto:null,pin:false,zSep:6};
 function renderMapa(r){
   const [vx,vy,vw,vh]=MAPA.vb;
   MP.r=r;
@@ -1484,14 +1489,17 @@ function mpScreen(c){const [px,py]=prj(c[0],c[1]);return [MP.x+(px-MAPA.vb[0])*M
 function mpFit(){const [,,vw,vh]=MAPA.vb,side=innerWidth>860&&document.body.classList.contains("side-open")?330:0;
   const W=innerWidth-side-40,H=innerHeight-140;MP.z=Math.min(W/vw,H/vh)*1.05;MP.x=side+20+(W-vw*MP.z)/2;MP.y=90+(H-vh*MP.z)/2;MP.fit=true;}
 function initMapa(){if(!MP.fit)mpFit();mpApply();}
-function mpApply(){const m=$("#mpin");if(!m)return;m.style.transform=`translate(${MP.x}px,${MP.y}px) scale(${MP.z})`;mpDraw();renderScalebar();}
+function mpApply(){const m=$("#mpin");if(!m)return;m.style.transform=`translate(${MP.x}px,${MP.y}px) scale(${MP.z})`;m.style.setProperty("--z",MP.z);mpDraw();renderScalebar();}
 function mpDraw(){
   const st=$("#mpst");if(!st)return;
   // agrupa los sitios que quedan muy cerca en pantalla
   const ls=mpLugares().map(l=>({...l,s:mpScreen(l.c)})).sort((a,b)=>b.ds.length-a.ds.length),cl=[];
-  ls.forEach(l=>{const c=l.sin?null:cl.find(c=>!c.sin&&Math.hypot(c.s[0]-l.s[0],c.s[1]-l.s[1])<84);if(c){c.ls.push(l);c.ds=c.ds.concat(l.ds);}else cl.push({s:l.s,ls:[l],ds:l.ds.slice(),sin:l.sin});});
+  const rad=MP.z>=MP.zSep?0:84;
+  ls.forEach(l=>{const c=l.sin||!rad?null:cl.find(c=>!c.sin&&Math.hypot(c.s[0]-l.s[0],c.s[1]-l.s[1])<rad);if(c){c.ls.push(l);c.ds=c.ds.concat(l.ds);}else cl.push({s:l.s.slice(),o:l.s.slice(),ls:[l],ds:l.ds.slice(),sin:l.sin});});
+  if(!rad){for(let it=0;it<40;it++){let mov=false;for(let a=0;a<cl.length;a++)for(let b=a+1;b<cl.length;b++){const A=cl[a],B=cl[b],dx=B.s[0]-A.s[0],dy=B.s[1]-A.s[1],d=Math.hypot(dx,dy)||.01,min=96;
+    if(d<min){const k=(min-d)/2,ux=dx/d||1,uy=dy/d;A.s[0]-=ux*k;A.s[1]-=uy*k;B.s[0]+=ux*k;B.s[1]+=uy*k;mov=true;}}if(!mov)break;}}
   MP.cl=cl;
-  st.innerHTML=cl.map((c,i)=>{const n=c.ds.length,sz=Math.round(40+Math.min(34,Math.log2(n+1)*6)),top=c.ds.slice().sort((a,b)=>b.n-a.n).slice(0,4);
+  st.innerHTML=cl.filter(c=>c.o&&Math.hypot(c.s[0]-c.o[0],c.s[1]-c.o[1])>3).map(c=>`<svg class="mst-lin" style="left:0;top:0"><line x1="${c.o[0]}" y1="${c.o[1]}" x2="${c.s[0]}" y2="${c.s[1]}"/><circle cx="${c.o[0]}" cy="${c.o[1]}" r="3"/></svg>`).join("")+cl.map((c,i)=>{const n=c.ds.length,sz=Math.round(40+Math.min(34,Math.log2(n+1)*6)),top=c.ds.slice().sort((a,b)=>b.n-a.n).slice(0,4);
     const nom=c.ls[0].n+(c.ls.length>1?` +${c.ls.length-1}`:"");
     return `<button class="mst${c.sin?" sin":""}" data-i="${i}" style="left:${c.s[0].toFixed(0)}px;top:${c.s[1].toFixed(0)}px;--sz:${sz}px;z-index:${200-Math.min(199,n)}" aria-label="${esc(nom)}, ${n} ${n===1?"pieza":"piezas"}">
       <span class="mst-pila">${top.map((d,k)=>`<img src="${srcT(d.img[0])}" alt="" draggable="false" style="--r:${((d.n*37)%17-8)}deg;--dx:${k*3}px;--dy:${-k*3}px">`).join("")}</span>
@@ -1507,7 +1515,7 @@ function mpCard(i,b){
   const pais=c.sin?"":[...new Set(c.ls.map(l=>PAIS[l.n]).filter(Boolean))].join(", ");
   k.innerHTML=`<div class="mpc-h"><div><b>${esc(c.ls.map(l=>l.n).join(" · "))}</b>${pais?`<span class="muted mono"> ${esc(pais)}</span>`:""}</div><span class="mono muted">${ds.length}</span>${MP.pin?`<button class="mpc-x mono" aria-label="Cerrar">×</button>`:""}</div>
     ${c.sin?`<p class="mono muted mpc-def">Recuerdos que no se sabe de dónde vienen.</p>`:""}
-    <div class="mpc-g">${ds.map(d=>`<button class="mpc-p" data-id="${esc(d.id)}" title="${esc(d.titulo)}"><img src="${srcT(d.img[0])}" alt="${esc(d.titulo)}" loading="lazy"></button>`).join("")}</div>`;
+    ${c.ls.map(l=>{const dl=ds.filter(d=>l.ds.includes(d));return `${c.ls.length>1?`<div class="mpc-s mono">${esc(l.n)} <span class="muted">${dl.length}</span></div>`:""}<div class="mpc-g">${dl.map(d=>`<button class="mpc-p" data-id="${esc(d.id)}" title="${esc(d.titulo)}"><img src="${srcT(d.img[0])}" alt="${esc(d.titulo)}" loading="lazy"></button>`).join("")}</div>`;}).join("")}`;
   k.hidden=false;
   const r=b.getBoundingClientRect(),W=Math.min(360,innerWidth-32);k.style.width=W+"px";
   let x=r.right+12;if(x+W>innerWidth-16)x=r.left-12-W;x=Math.max(16,x);
@@ -1518,7 +1526,7 @@ function mpCard(i,b){
   k.onmouseleave=()=>{if(!MP.pin)mpCerrar();};
 }
 function mpCerrar(){MP.abierto=null;MP.pin=false;const k=$("#mpcard");if(k)k.hidden=true;}
-function mpZoomAt(cx,cy,f){const nz=Math.min(14,Math.max(.25,MP.z*f));if(nz===MP.z)return;MP.x=cx-(cx-MP.x)*nz/MP.z;MP.y=cy-(cy-MP.y)*nz/MP.z;MP.z=nz;mpCerrar();mpApply();}
+function mpZoomAt(cx,cy,f){const nz=Math.min(60,Math.max(.25,MP.z*f));if(nz===MP.z)return;MP.x=cx-(cx-MP.x)*nz/MP.z;MP.y=cy-(cy-MP.y)*nz/MP.z;MP.z=nz;mpCerrar();mpApply();}
 const isMapa=()=>S.view==="mapa";
 mainEl.addEventListener("pointerdown",e=>{if(!isMapa()||e.button!==0||e.target.closest(".mst,.mp-card"))return;MP.drag={x:e.clientX,y:e.clientY,px:MP.x,py:MP.y};MP.moved=false;});
 addEventListener("pointermove",e=>{if(!MP.drag)return;const dx=e.clientX-MP.drag.x,dy=e.clientY-MP.drag.y;if(!MP.moved&&Math.hypot(dx,dy)>4){MP.moved=true;mpCerrar();document.body.classList.add("panning");}if(!MP.moved)return;MP.x=MP.drag.px+dx;MP.y=MP.drag.py+dy;mpApply();});
