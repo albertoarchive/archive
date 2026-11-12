@@ -866,9 +866,9 @@ function clampP(){}
 function applyP(){const m=$("#lzin");if(m)m.style.transform=`translate(${P.x}px,${P.y}px) scale(${P.z})`;drawTiles();renderScalebar();auMover();clearTimeout(applyP.t);applyP.t=setTimeout(nitidez,250);}
 /* Al acercar, las piezas visibles cambian la miniatura por la imagen completa */
 /* Distancia de cada pieza visible al centro de la pantalla (0 centro … 1 esquina); si una pieza sale repetida, cuenta la más cercana */
-function posiciones(){const m=new Map();if(S.view==="mapa"||S.view==="lista")return m;const vw=innerWidth,vh=innerHeight,cx=vw/2,cy=vh/2,
+function posiciones(){const m=new Map();if(S.view==="mapa"||S.view==="lista")return m;const vw=innerWidth,vh=innerHeight,off=vw>860&&document.body.classList.contains("side-open")&&!document.body.classList.contains("ui-off")?320:0,cx=off+(vw-off)/2,cy=vh/2,
   // la estructura radial es siempre la de la pantalla, con cualquier zoom: centro nítido y fuerte, bordes sordos
-  R=Math.hypot(cx,cy);
+  R=Math.hypot((vw-off)/2,cy);
   document.querySelectorAll("#main .piece").forEach(p=>{const r=p.getBoundingClientRect();if(r.right<0||r.bottom<0||r.left>vw||r.top>vh)return;const d=Math.hypot(r.left+r.width/2-cx,r.top+r.height/2-cy)/R;if(d>=1)return;const id=p.dataset.id;if(!m.has(id)||d<m.get(id))m.set(id,d);});return m;}
 let auT=0;function auMover(){if(auT)return;auT=setTimeout(()=>{auT=0;if(typeof AU!=="undefined")AU.update();},120);}
 addEventListener("scroll",auMover,{passive:true});
@@ -1590,7 +1590,14 @@ const AU={ctx:null,master:null,rev:null,on:true,n:new Map(),hover:null,calm:1,st
   update(){if(!this.started||!this.ctx)return;const c=this.ctx,t=c.currentTime;
     // posición de cada pieza respecto al centro de la pantalla: 0 = centro, 1 = borde
     // como mucho 6 voces a la vez: las más cercanas al centro (y la del hover)
-    const pos=posiciones(),VOCES=6,cand=filtered().filter(d=>d.sonido&&pos.has(d.id)&&d.id!==this.hover).sort((a,b)=>pos.get(a.id)-pos.get(b.id)).slice(0,this.hover?VOCES-1:VOCES).map(d=>d.id);
+    const pos=posiciones(),VOCES=6,orden=filtered().filter(d=>d.sonido&&pos.has(d.id)&&d.id!==this.hover).sort((a,b)=>pos.get(a.id)-pos.get(b.id));
+    // círculo central: con muchas piezas a la vista (zoom muy bajo, «Todo») se estrecha para que solo unas pocas queden dentro
+    const nVis=[...pos.values()].filter(r=>r<.32).length;this.rc=Math.max(.05,Math.min(.32,.32*Math.sqrt(6/Math.max(1,nVis))));
+    // voces repartidas por anillos: las dos del centro y el resto, una por anillo hacia fuera (las de fuera suenan tras la pared)
+    const nV=this.hover?VOCES-1:VOCES,cand=[],usa=new Set();orden.slice(0,2).forEach(d=>{cand.push(d.id);usa.add(d.id);});
+    const rmax=orden.length?pos.get(orden[orden.length-1].id):0;
+    for(let k=1;cand.length<nV&&k<=nV;k++){const meta=this.rc+(rmax-this.rc)*k/(nV-1);let best=null,bd=1e9;for(const d of orden){if(usa.has(d.id))continue;const e=Math.abs(pos.get(d.id)-meta);if(e<bd){bd=e;best=d;}}if(!best)break;cand.push(best.id);usa.add(best.id);}
+    cand.splice(nV);
     if(this.hover&&D.some(d=>d.id===this.hover&&d.sonido))cand.push(this.hover);
     const act=new Set(cand),con=D.filter(d=>d.sonido&&(act.has(d.id)||this.n.has(d.id)));
     const hay=this.hover&&act.has(this.hover),abr=1-this.calm; // abrumación: al entrar todo fuerte, se calma al moverte y con el tiempo
@@ -1606,12 +1613,12 @@ const AU={ctx:null,master:null,rev:null,on:true,n:new Map(),hover:null,calm:1,st
       else{ // sin hover: estructura radial, suena más y más nítido lo que está en el centro
         // «baño de discoteca»: solo el círculo central suena limpio; fuera de él la música sigue presente
         // (volumen parecido) pero tras la pared: graves, filtro muy cerrado y algo de reverberación
-        const r=pos.has(d.id)?pos.get(d.id):1,dentro=Math.min(1,Math.max(0,(.32-r)/.2)); // 1 dentro del círculo central, 0 fuera
+        const r=pos.has(d.id)?pos.get(d.id):1,rc=this.rc||.32,dentro=Math.min(1,Math.max(0,(rc-r)/(rc*.62))); // 1 dentro del círculo central, 0 fuera
         // el filtro se come energía: fuera se compensa para que la pared no baje tanto el volumen percibido
         g=vol*(.42+.10*dentro+.04*w)*Math.min(1,1.5/Math.sqrt(act.size||1))*(1+.4*abr);
         f=dentro>0?320+17000*Math.pow(dentro,1.5)*mem:320+260*w;}
       x.g.gain.setTargetAtTime(g,t,.25);x.lp.frequency.setTargetAtTime(f,t,.25);
-      const lejos=!hay&&pos.has(d.id)?Math.min(1,Math.max(0,(pos.get(d.id)-.12)/.25)):0;
+      const rc2=this.rc||.32,lejos=!hay&&pos.has(d.id)?Math.min(1,Math.max(0,(pos.get(d.id)-rc2*.38)/(rc2*.78))):0;
       x.lp.Q.setTargetAtTime(1+1.5*lejos,t,.3);x.sh.gain.setTargetAtTime(6*lejos,t,.3); // graves más gordos al otro lado de la pared
       x.dry.gain.setTargetAtTime(.35+.65*v,t,.4);x.wet.gain.setTargetAtTime((1-v)*.9+abr*.3+(hay&&!solo?.3:0)+.35*lejos,t,.4);
       // al hacer hover sigue por donde iba (si ya sonaba); si no sonaba, empieza por el principio de su parte
