@@ -1559,9 +1559,9 @@ const AU={ctx:null,master:null,rev:null,on:true,n:new Map(),hover:null,calm:1,st
   start(){this.init();if(!this.ctx)return;this.ctx.resume();this.started=true;this.calm=0;this.master.gain.setTargetAtTime(this.on?1:0,this.ctx.currentTime,1.2);this.update();},
   /* Cada sonido se descarga y se decodifica una vez (Web Audio): así suena en cualquier navegador, también al pasar el ratón, sin esperar a un clic */
   node(d){let x=this.n.get(d.id);if(x&&x.src===d.sonido)return x;if(x)this.stop(x);
-    const c=this.ctx,lp=c.createBiquadFilter(),g=c.createGain(),dry=c.createGain(),wet=c.createGain();
-    lp.type="lowpass";g.gain.value=0;lp.connect(g);g.connect(dry);g.connect(wet);dry.connect(this.master);wet.connect(this.rev);
-    x={lp,g,dry,wet,src:d.sonido,buf:null,s:null,el:null,t:0,want:0};this.n.set(d.id,x);this.load(x);return x;},
+    const c=this.ctx,lp=c.createBiquadFilter(),sh=c.createBiquadFilter(),g=c.createGain(),dry=c.createGain(),wet=c.createGain();
+    lp.type="lowpass";sh.type="lowshelf";sh.frequency.value=140;sh.gain.value=0;g.gain.value=0;lp.connect(sh);sh.connect(g);g.connect(dry);g.connect(wet);dry.connect(this.master);wet.connect(this.rev);
+    x={lp,sh,g,dry,wet,src:d.sonido,buf:null,s:null,el:null,t:0,want:0};this.n.set(d.id,x);this.load(x);return x;},
   load(x){if(x.loading||x.buf||x.el)return;x.loading=true;const u=src(x.src);
     fetch(u).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer();}).then(ab=>new Promise((ok,ko)=>{const p=this.ctx.decodeAudioData(ab,ok,ko);if(p&&p.then)p.then(ok,ko);}))
       .then(b=>{x.buf=b;x.loading=false;if(x.want)this.play(x,x.want===2);})
@@ -1594,11 +1594,12 @@ const AU={ctx:null,master:null,rev:null,on:true,n:new Map(),hover:null,calm:1,st
         // «baño de discoteca»: solo el círculo central suena limpio; fuera de él la música sigue presente
         // (volumen parecido) pero tras la pared: graves, filtro muy cerrado y algo de reverberación
         const r=pos.has(d.id)?pos.get(d.id):1,dentro=Math.min(1,Math.max(0,(.32-r)/.2)); // 1 dentro del círculo central, 0 fuera
-        g=vol*(.30+.22*dentro+.08*w)*Math.min(1,1.5/Math.sqrt(act.size||1))*(1+.4*abr);
+        // el filtro se come energía: fuera se compensa para que la pared no baje tanto el volumen percibido
+        g=vol*(.42+.10*dentro+.04*w)*Math.min(1,1.5/Math.sqrt(act.size||1))*(1+.4*abr);
         f=dentro>0?320+17000*Math.pow(dentro,1.5)*mem:320+260*w;}
       x.g.gain.setTargetAtTime(g,t,.25);x.lp.frequency.setTargetAtTime(f,t,.25);
       const lejos=!hay&&pos.has(d.id)?Math.min(1,Math.max(0,(pos.get(d.id)-.12)/.25)):0;
-      x.lp.Q.setTargetAtTime(1+1.5*lejos,t,.3);
+      x.lp.Q.setTargetAtTime(1+1.5*lejos,t,.3);x.sh.gain.setTargetAtTime(6*lejos,t,.3); // graves más gordos al otro lado de la pared
       x.dry.gain.setTargetAtTime(.35+.65*v,t,.4);x.wet.gain.setTargetAtTime((1-v)*.9+abr*.3+(hay&&!solo?.3:0)+.35*lejos,t,.4);
       if(solo&&this.lastSolo!==d.id)this.play(x,true);
       else if(g>0&&!this.sonando(x))this.play(x,false);
