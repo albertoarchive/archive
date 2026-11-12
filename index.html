@@ -17,6 +17,9 @@
 }
 :root{color-scheme:light}
 [hidden]{display:none!important}
+#wEstado{margin-right:10px;color:var(--muted)}#wEstado.err{color:var(--danger)}#wEstado.ok{color:var(--accent)}
+.wlogin{position:fixed;right:var(--padr);bottom:calc(env(safe-area-inset-bottom,0px) + 56px);z-index:40;padding:14px;width:min(300px,calc(100% - 32px));display:grid;gap:8px}
+.wlogin .wrow{display:flex;gap:6px}.wlogin input{flex:1;min-width:0;height:34px;border:1px solid var(--line);border-radius:8px;padding:0 10px;font:inherit;background:var(--bg);color:var(--fg)}.wlogin button{height:34px;padding:0 12px;border-radius:8px;background:var(--fg);color:var(--bg)}.wlogin p{margin:0;min-height:1em;font-size:12px}
 html,body{background:var(--bg);color:var(--fg)}
 body{font-family:var(--f-ui);font-size:13px;line-height:1.4;-webkit-font-smoothing:antialiased}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
@@ -429,6 +432,9 @@ body.ui-off main{padding-left:var(--pad)}
 </div>
 <button class="mono uishow" id="uiShow" hidden>Mostrar interfaz <kbd>H</kbd></button>
 <div class="corner br mono">
+  <span id="wEstado" class="mono" hidden></span>
+  <button id="loginBtn">Entrar</button>
+  <span class="muted">·</span>
   <button id="uiHide">Ocultar interfaz <kbd>H</kbd></button>
 </div>
 
@@ -478,7 +484,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const pad=n=>String(n).padStart(3,"0");
 const yr=d=>d.anio?String(d.anio):"Sin fechar";
-let EXTM={};const src=x=>/^[0-9a-f]{32}$/.test(x)?"a/"+x+"."+(EXTM[x]||"webp"):"img/"+x;
+let EXTM={};const LOCALURL=new Map();const src=x=>LOCALURL.get(x)||(/^[0-9a-f]{32}$/.test(x)?"a/"+x+"."+(EXTM[x]||"webp"):"img/"+x);
 const MW=d=>+d.ancho||80, H=d=>+d.alto||80, W=d=>d.aspecto?H(d)*d.aspecto:MW(d);
 let seed=Math.random();
 let db=null, assets=null, canEdit=false, editing=null;
@@ -1583,21 +1589,79 @@ async function exportWeb(){const b=$("#webBtn"),lab=b.querySelector("span"),old=
   lab.textContent=old;b.disabled=false;}
 $("#webBtn").onclick=exportWeb;
 $("#zIn").onclick=()=>zoomAt(innerWidth/2,innerHeight/2,1.25);$("#zOut").onclick=()=>zoomAt(innerWidth/2,innerHeight/2,.8);$("#zPct").onclick=()=>zoomTo(1);
-fetch("data.json",{cache:"no-store"}).then(r=>r.json()).then(d=>{EXTM=d.ext||{};D=(d.piezas||d).map(norm);render();computeColors();}).catch(()=>{if(!fromDb)$("#main").innerHTML='<p class="empty">No se pudo cargar el archivo. Recarga la página.</p>';});
-(async()=>{
-  return;
-  db=await claude.use("db");
-  const user=await claude.use("user");
-  canEdit=!!(user&&await user.canEdit());
-  assets=canEdit?await claude.use("assets"):null;
-  if(canEdit&&db){$("#addBtn").hidden=false;$("#syncBtn").hidden=!assets;$("#webBtn").hidden=false;}
-  if(!db) return;
-  db.collection("piezas").onSnapshot(snap=>{
-    if(snap.empty) return;
-    fromDb=true;RAW=snap.docs.map(x=>x.data());D=RAW.map(norm);computeColors();
-    if(!editing){render();if(!$("#ficha").hidden&&cur())drawFicha();}
-  },()=>{});
-})();
+/* ---------- Web pública: datos en data.json; edición con contraseña (función de Netlify → GitHub) ---------- */
+const FN="/.netlify/functions/archivo";
+let CLAVE=null;try{CLAVE=localStorage.getItem("arch-clave")}catch(e){}
+const STORE=new Map(),LIS=[];let snapT=0;
+function emitir(){clearTimeout(snapT);snapT=setTimeout(()=>{const docs=[...STORE.values()].map(d=>({data:()=>d}));LIS.forEach(f=>f({empty:!docs.length,docs}));},30);}
+function cargar(d){EXTM=Object.assign(EXTM,d.ext||{});STORE.clear();(d.piezas||d).forEach(p=>STORE.set(p.id,p));emitir();}
+const clon=o=>JSON.parse(JSON.stringify(o));
+
+/* Cola de cambios: se agrupan y se mandan juntos (un commit por envío) */
+const Q={ops:[],assets:[],t:0,busy:false,fallos:0};
+function estado(t,cls){const e=$("#wEstado");if(!e)return;e.hidden=!t;e.textContent=t||"";e.className="mono "+(cls||"");}
+function encolar(){clearTimeout(Q.t);Q.t=setTimeout(enviar,1500);estado("Guardando…");}
+async function post(body){const r=await fetch(FN,{method:"POST",headers:{"content-type":"application/json","x-clave":CLAVE||""},body:JSON.stringify(body)});
+  if(r.status===401){salir();throw new Error("La contraseña ya no vale. Vuelve a entrar.");}
+  if(!r.ok)throw new Error((await r.text()).slice(0,140)||("Error "+r.status));return r.json();}
+async function enviar(){
+  if(Q.busy){Q.t=setTimeout(enviar,800);return;}
+  if(!Q.ops.length&&!Q.assets.length)return;
+  Q.busy=true;
+  try{
+    // primero los archivos, en paquetes de ~3 MB
+    while(Q.assets.length){let tam=0,pack=[];while(Q.assets.length&&(pack.length===0||tam+Q.assets[0].b64.length<3e6)){const a=Q.assets.shift();pack.push(a);tam+=a.b64.length;}
+      try{await post({assets:pack});}catch(e){Q.assets.unshift(...pack);throw e;}}
+    if(Q.ops.length){const ops=Q.ops.splice(0);try{await post({ops});}catch(e){Q.ops.unshift(...ops);throw e;}}
+    Q.fallos=0;estado("Guardado · la web se actualiza en un minuto","ok");setTimeout(()=>{if(!Q.ops.length&&!Q.assets.length&&!Q.busy)estado("");},6000);
+  }catch(e){Q.fallos++;estado("No se pudo guardar: "+e.message+(CLAVE?" · reintento…":""),"err");if(CLAVE)Q.t=setTimeout(enviar,Math.min(60e3,4e3*Q.fallos));}
+  finally{Q.busy=false;}
+}
+addEventListener("beforeunload",e=>{if(Q.ops.length||Q.assets.length||Q.busy){e.preventDefault();e.returnValue="";}});
+
+const dbWeb={
+  collection:()=>({onSnapshot(cb){LIS.push(cb);emitir();return()=>{};}}),
+  doc(path){const id=path.split("/").pop();return{
+    async update(o){const d=STORE.get(id);if(!d)throw new Error("No existe");const c=clon(o);Object.assign(d,c);Q.ops.push({op:"update",id,data:c});encolar();emitir();},
+    async set(o){const c=clon(o);STORE.set(id,c);Q.ops.push({op:"set",id,data:c});encolar();emitir();},
+    async delete(){STORE.delete(id);Q.ops.push({op:"delete",id});encolar();emitir();}}}
+};
+const EXT_DE={"image/webp":"webp","image/png":"png","image/jpeg":"jpg","video/mp4":"mp4","video/webm":"webm","audio/webm":"webm","audio/mp4":"m4a","audio/mpeg":"mp3"};
+const b64De=b=>new Promise((ok,ko)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(",")[1]);r.onerror=ko;r.readAsDataURL(b);});
+const assetsWeb={async upload(blob,opt={}){
+  const t=String(opt.type||blob.type||"").split(";")[0],ext=EXT_DE[t]||"bin";
+  const id=[...crypto.getRandomValues(new Uint8Array(16))].map(b=>b.toString(16).padStart(2,"0")).join("");
+  if(blob.size>4.2e6)throw new Error("Archivo demasiado grande (máx. 4 MB)");
+  Q.assets.push({id,ext,b64:await b64De(blob)});EXTM[id]=ext;LOCALURL.set(id,URL.createObjectURL(blob));encolar();
+  return {id,url:LOCALURL.get(id),contentType:t,sizeBytes:blob.size};}};
+
+/* Entrar / salir */
+async function entrar(clave){const r=await fetch(FN,{headers:{"x-clave":clave},cache:"no-store"});
+  if(r.status===401)throw new Error("Contraseña incorrecta");if(!r.ok)throw new Error("No se pudo conectar ("+r.status+")");return r.json();}
+function activar(){canEdit=true;assets=assetsWeb;$("#addBtn").hidden=false;$("#syncBtn").hidden=false;$("#loginBtn").textContent="Salir";document.body.classList.add("editor");P.sig="";render();}
+function salir(){CLAVE=null;try{localStorage.removeItem("arch-clave")}catch(e){}canEdit=false;assets=null;$("#addBtn").hidden=true;$("#syncBtn").hidden=true;$("#loginBtn").textContent="Entrar";document.body.classList.remove("editor");if(!$("#ficha").hidden)drawFicha();render();}
+function loginForm(){
+  if(canEdit){if(Q.ops.length||Q.assets.length){estado("Espera a que se guarde antes de salir","err");return;}salir();return;}
+  let f=$("#wLogin");if(f){f.remove();return;}
+  f=document.createElement("form");f.id="wLogin";f.className="card2 wlogin";
+  f.innerHTML=`<label class="mono" for="wClave">Contraseña del archivo</label><div class="wrow"><input id="wClave" type="password" autocomplete="current-password" required><button class="mono">Entrar</button></div><p class="mono muted" id="wMsg"></p>`;
+  document.body.appendChild(f);$("#wClave").focus();
+  f.onkeydown=e=>{if(e.key==="Escape")f.remove();};
+  f.onsubmit=async e=>{e.preventDefault();const c=$("#wClave").value;$("#wMsg").textContent="Comprobando…";
+    try{const d=await entrar(c);CLAVE=c;try{localStorage.setItem("arch-clave",c)}catch(_){}cargar(d);f.remove();activar();}
+    catch(err){$("#wMsg").textContent=err.message;}};
+}
+$("#loginBtn").onclick=loginForm;
+
+db=dbWeb;
+db.collection("piezas").onSnapshot(snap=>{
+  if(snap.empty) return;
+  fromDb=true;RAW=snap.docs.map(x=>x.data());D=RAW.map(norm);computeColors();
+  if(!editing){render();if(!$("#ficha").hidden&&cur())drawFicha();}
+},()=>{});
+fetch("data.json",{cache:"no-store"}).then(r=>r.json()).then(d=>{if(!STORE.size)cargar(d);
+  if(CLAVE)entrar(CLAVE).then(f=>{cargar(f);activar();}).catch(e=>{if(/incorrecta/.test(e.message))salir();});
+}).catch(()=>{$("#main").innerHTML='<p class="empty">No se pudo cargar el archivo. Recarga la página.</p>';});
 </script>
 
 </body></html>
