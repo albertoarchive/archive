@@ -1591,9 +1591,15 @@ const AU={ctx:null,master:null,rev:null,on:true,n:new Map(),hover:null,calm:1,st
       else if(hay){ // con hover: solo esa en primer plano; el resto, lejos y apagado
         if(solo){g=vol;f=18000;}else{g=vol*.06*(.3+.7*w);f=60+140*w;}}
       else{ // sin hover: estructura radial, suena más y más nítido lo que está en el centro
-        g=vol*(.05+.95*w)*Math.min(1,1.2/Math.sqrt(suma))*(1+.5*abr);f=250+17500*Math.pow(w,2)*mem;}
+        // «baño de discoteca»: solo el círculo central suena limpio; fuera de él la música sigue presente
+        // (volumen parecido) pero tras la pared: graves, filtro muy cerrado y algo de reverberación
+        const r=pos.has(d.id)?pos.get(d.id):1,dentro=Math.min(1,Math.max(0,(.32-r)/.2)); // 1 dentro del círculo central, 0 fuera
+        g=vol*(.30+.22*dentro+.08*w)*Math.min(1,1.5/Math.sqrt(act.size||1))*(1+.4*abr);
+        f=dentro>0?320+17000*Math.pow(dentro,1.5)*mem:320+260*w;}
       x.g.gain.setTargetAtTime(g,t,.25);x.lp.frequency.setTargetAtTime(f,t,.25);
-      x.dry.gain.setTargetAtTime(.35+.65*v,t,.4);x.wet.gain.setTargetAtTime((1-v)*.9+abr*.3+(hay&&!solo?.3:0),t,.4);
+      const lejos=!hay&&pos.has(d.id)?Math.min(1,Math.max(0,(pos.get(d.id)-.12)/.25)):0;
+      x.lp.Q.setTargetAtTime(1+1.5*lejos,t,.3);
+      x.dry.gain.setTargetAtTime(.35+.65*v,t,.4);x.wet.gain.setTargetAtTime((1-v)*.9+abr*.3+(hay&&!solo?.3:0)+.35*lejos,t,.4);
       if(solo&&this.lastSolo!==d.id)this.play(x,true);
       else if(g>0&&!this.sonando(x))this.play(x,false);
       if(g===0&&this.sonando(x)){clearTimeout(x.t);x.t=setTimeout(()=>{if(x.g.gain.value<.002)this.stop(x);},2500);}});
