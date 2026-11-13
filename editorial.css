@@ -84,3 +84,8 @@ body{font-variant-numeric:tabular-nums}
 
 /* etiqueta de pieza al pasar */
 .piece .cap{border:0!important;border-top:1px solid var(--rule)!important;font-size:11.5px!important}
+
+/* barra de abajo: la regla ocupa siempre el mismo ancho, así los botones de zoom no se mueven al pulsar varias veces */
+.bl .scalebar{width:170px;flex:none;overflow:hidden}
+.bl .scalebar i{max-width:100%}
+.zoomer #zPct{min-width:52px;text-align:center}
