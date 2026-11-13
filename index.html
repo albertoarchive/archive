@@ -589,20 +589,19 @@ body.ui-off main{padding-left:var(--pad)}
   .pie{font-size:14px;margin-bottom:16px}
 }
 
-/* ================= Cajón de fichas, de verdad ================= */
-/* el panel es el fondo del cajón; cada sección es una ficha blanca con borde completo y su pestaña pegada arriba */
-.side{background:#ebeae5;padding:12px 12px 18px!important;border-right:1px solid var(--rule)}
-.side-head{background:#fff!important;margin-bottom:34px!important}
-.blk,#d-sel details.sec{background:var(--bg)!important;position:relative;border:1px solid var(--rule)!important;padding:12px 12px 12px!important;margin:0 0 34px!important}
+/* ================= Panel como formulario de registro: cada sección es una caja con su cabecera ================= */
+.side{background:var(--bg);padding:12px 12px 18px!important}
+.side-head{background:var(--bg)!important;margin-bottom:10px!important}
+.blk,#d-sel details.sec{background:var(--bg)!important;border:1px solid var(--rule)!important;padding:0 12px 4px!important;margin:0 0 10px!important}
 #d-sel{display:contents}
 #d-sel>.sec:first-of-type{margin-top:0!important}
-.blk>summary.sec-t.big,.blk>.sec-t.big,#d-sel details.sec>summary.sec-t{position:absolute!important;top:-23px;left:calc(var(--tab,0%) - 1px);margin:0!important;height:23px;border:1px solid var(--rule);border-bottom:0;background:var(--bg);padding:0 10px;z-index:2}
-.blk>summary.sec-t.big::after,.blk>.sec-t.big::after,#d-sel details.sec>summary.sec-t::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--bg)}
-/* fichas cerradas: solo asoma el canto, apiladas como en el cajón */
-details.blk:not([open]),#d-sel details.sec:not([open]){padding:0!important;height:9px;margin-bottom:32px!important;box-shadow:0 3px 0 -1px #fff,0 3px 0 0 var(--rule),0 6px 0 -1px #fff,0 6px 0 0 var(--rule)}
-#d-ver{--tab:0%}#d-fil{--tab:34%}#d-tipo{--tab:0%}#d-ambito{--tab:34%}#d-ancla{--tab:62%}#d-sent{--tab:0%}#d-edit{--tab:34%}
+.blk>summary.sec-t.big,.blk>.sec-t.big,#d-sel details.sec>summary.sec-t{position:static!important;display:flex!important;justify-content:space-between;align-items:center;height:30px;margin:0 -12px 0!important;padding:0 12px!important;border:0!important;background:none;font-family:var(--f-ui);font-size:9.5px;letter-spacing:.11em;font-weight:500;text-transform:uppercase;color:var(--fg)}
+.blk[open]>summary.sec-t.big,.blk>.sec-t.big,#d-sel details.sec[open]>summary.sec-t{border-bottom:1px solid var(--rule)!important;margin-bottom:4px!important}
+.blk>summary.sec-t.big::after,.blk>.sec-t.big::after,#d-sel details.sec>summary.sec-t::after{content:none}
+details.blk:not([open]),#d-sel details.sec:not([open]){padding-bottom:0!important}
+.blk>summary:hover,#d-sel details.sec>summary:hover{background:var(--paper)}
 .side .grid2 label:last-child,.side .switch:last-child{border-bottom:0}
-#d-sel .def{margin-top:0}
+#d-sel .def{margin:6px 0 8px}
 .edtools{gap:0}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -1299,7 +1298,7 @@ function editorHTML(e){
   <div class="actions"><button type="submit" class="btn primary" id="e-save">Guardar</button><button type="button" class="btn" id="e-cancel">Cancelar</button>${e.isNew?"":`<span id="e-delwrap"><button type="button" class="btn danger" id="e-del">Eliminar pieza</button></span>`}</div>
   </form>`;
 }
-function readForm(){["titulo","tipo","ambito","ancla","anio","lugar","ancho","alto","procedencia","procedencia_de","pie","nota","nivel"].forEach(k=>editing[k]=$("#e-"+k).value);editing.lock=$("#e-lock").checked;}
+function readForm(){["titulo","tipo","ambito","ancla","anio","lugar","ancho","alto","procedencia","procedencia_de","pie","nota"].forEach(k=>{const el=$("#e-"+k);if(el)editing[k]=el.value;});editing.lock=$("#e-lock").checked;}
 function aspect(){const i=$("#card .front img");return i&&i.naturalWidth?i.naturalHeight/i.naturalWidth:null;}
 function wireEditor(){
   const e=editing;
