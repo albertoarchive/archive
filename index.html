@@ -589,20 +589,36 @@ body.ui-off main{padding-left:var(--pad)}
   .pie{font-size:14px;margin-bottom:16px}
 }
 
-/* ================= Panel como formulario de registro: cada sección es una caja con su cabecera ================= */
-.side{background:var(--bg);padding:12px 12px 18px!important}
-.side-head{background:var(--bg)!important;margin-bottom:10px!important}
-.blk,#d-sel details.sec{background:var(--bg)!important;border:1px solid var(--rule)!important;padding:0 12px 4px!important;margin:0 0 10px!important}
+/* ================= Panel: carpetas kraft con una ficha de biblioteca dentro =================
+   El panel es el cajón (gris). Cada sección es una carpeta (borde kraft) con su etiqueta en la pestaña;
+   dentro, la ficha de cartulina: línea roja de cabecera, pautas azules, valores «a máquina» en azul y el taladro abajo. */
+:root{--kraft:#d6bd8a;--kraft2:#b99f6c;--carton:#f6f1e3;--pauta:#b9cde2;--tinta:#1d2b5c;--cajon:#dcdbd6}
+.side{background:var(--cajon)!important;padding:14px 12px 20px!important;border-right:1px solid var(--rule)}
+.side-head{background:var(--carton)!important;border-color:var(--kraft2)!important;margin-bottom:44px!important;box-shadow:0 2px 0 var(--kraft2)}
+.side-head .head-n,.side-head #sideHide{border-color:var(--kraft2)!important}
+.side-head .head-n{color:var(--tinta)!important}
+.blk,#d-sel details.sec{position:relative;background:var(--carton) linear-gradient(#c8392b,#c8392b) no-repeat 0 12px/100% 1px!important;border:9px solid var(--kraft)!important;border-radius:0 4px 4px 4px;box-shadow:0 2px 0 var(--kraft2),0 4px 10px rgba(0,0,0,.12);padding:22px 14px 34px!important;margin:0 0 46px!important}
 #d-sel{display:contents}
 #d-sel>.sec:first-of-type{margin-top:0!important}
-.blk>summary.sec-t.big,.blk>.sec-t.big,#d-sel details.sec>summary.sec-t{position:static!important;display:flex!important;justify-content:space-between;align-items:center;height:30px;margin:0 -12px 0!important;padding:0 12px!important;border:0!important;background:none;font-family:var(--f-ui);font-size:9.5px;letter-spacing:.11em;font-weight:500;text-transform:uppercase;color:var(--fg)}
-.blk[open]>summary.sec-t.big,.blk>.sec-t.big,#d-sel details.sec[open]>summary.sec-t{border-bottom:1px solid var(--rule)!important;margin-bottom:4px!important}
-.blk>summary.sec-t.big::after,.blk>.sec-t.big::after,#d-sel details.sec>summary.sec-t::after{content:none}
-details.blk:not([open]),#d-sel details.sec:not([open]){padding-bottom:0!important}
-.blk>summary:hover,#d-sel details.sec>summary:hover{background:var(--paper)}
-.side .grid2 label:last-child,.side .switch:last-child{border-bottom:0}
-#d-sel .def{margin:6px 0 8px}
+/* pestaña de la carpeta con la etiqueta blanca pegada */
+.blk>summary.sec-t.big,.blk>.sec-t.big,#d-sel details.sec>summary.sec-t{position:absolute!important;top:-30px;left:calc(var(--tab,0%) - 3px);display:inline-flex!important;align-items:center;gap:8px;height:20px;margin:0!important;padding:0 9px!important;border:0!important;background:#fff;box-shadow:0 0 0 6px var(--kraft),0 6px 0 6px var(--kraft);border-radius:1px;font-family:var(--f-ui);font-size:9.5px;letter-spacing:.12em;font-weight:500;text-transform:uppercase;color:var(--fg);z-index:2}
+.blk>summary.sec-t.big::after,.blk>.sec-t.big::after,#d-sel details.sec>summary.sec-t::after,.blk>summary.sec-t.big::before,#d-sel details.sec>summary.sec-t::before{content:none}
+.blk>summary:hover,#d-sel details.sec>summary:hover{background:#fffbe9}
+#d-ver{--tab:0%}#d-fil{--tab:36%}#d-tipo{--tab:0%}#d-ambito{--tab:36%}#d-ancla{--tab:64%}#d-sent{--tab:0%}#d-edit{--tab:36%}
+/* carpeta cerrada: solo el canto */
+details.blk:not([open]),#d-sel details.sec:not([open]){padding:0!important;height:0;background:var(--kraft)!important;margin-bottom:40px!important}
+/* taladro */
+details.blk[open]::after,#d-sel details.sec[open]::after,.edtools::after{content:"";position:absolute;left:50%;bottom:11px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:var(--cajon);box-shadow:inset 0 1px 2px rgba(0,0,0,.35)}
+/* filas sobre las pautas azules; valores a máquina en azul */
+.side .grid2 label,.fila,.switch,.edtools .procbtn{border-bottom:1px solid var(--pauta)!important}
+.side .grid2 select,.side .colbtn,.side .seg button[aria-pressed="true"],.switch small{color:var(--tinta)!important}
+.side .seg button[aria-pressed="true"]{border-color:var(--tinta)!important}
+.side .grid2 select{background-color:transparent!important}
+.switch input{background:transparent;border-color:var(--tinta)}.switch input:checked::before{background:var(--tinta)}
+#d-sel .def{margin:0 0 8px;color:#7d7766}
+#d-sel .rows button,#d-sel .fam{background:transparent}
 .edtools{gap:0}
+@media (max-width:860px){.side{border:0}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
