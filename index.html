@@ -462,7 +462,7 @@ body.ui-off main{padding-left:var(--pad)}
 .side-head{align-items:stretch!important;display:grid!important;grid-template-columns:1fr auto;grid-template-rows:auto auto;border:1px solid var(--rule)!important;padding:0!important;margin-bottom:22px}
 .side-head .brand{grid-column:1;padding:8px 10px;font-weight:500;font-size:15px;letter-spacing:-.015em}
 .side-head .brand span{color:inherit}
-.side-head #sideHide{grid-column:2;grid-row:1;display:flex;align-items:center;padding:0 10px;border-left:1px solid var(--rule);font-family:var(--f-ui);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase}
+.side-head #sideHide{align-self:stretch;grid-column:2;grid-row:1;display:flex;align-items:center;padding:0 10px;border-left:1px solid var(--rule);font-family:var(--f-ui);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase}
 .side-head .head-n{grid-column:1/-1;grid-row:2;margin:0;padding:6px 10px;border-top:1px solid var(--rule);font-family:var(--f-mono);font-size:11px;color:var(--fg);display:flex;justify-content:space-between}
 .side-head .head-n::before{content:"Nº de piezas";font-family:var(--f-ui);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted)}
 .blk{padding:0 0 26px;position:relative}
@@ -588,6 +588,22 @@ body.ui-off main{padding-left:var(--pad)}
   .f-meta dd{padding:7px 12px 7px 10px}
   .pie{font-size:14px;margin-bottom:16px}
 }
+
+/* ================= Cajón de fichas, de verdad ================= */
+/* el panel es el fondo del cajón; cada sección es una ficha blanca con borde completo y su pestaña pegada arriba */
+.side{background:#ebeae5;padding:12px 12px 18px!important;border-right:1px solid var(--rule)}
+.side-head{background:#fff!important;margin-bottom:34px!important}
+.blk,#d-sel details.sec{background:var(--bg)!important;position:relative;border:1px solid var(--rule)!important;padding:12px 12px 12px!important;margin:0 0 34px!important}
+#d-sel{display:contents}
+#d-sel>.sec:first-of-type{margin-top:0!important}
+.blk>summary.sec-t.big,.blk>.sec-t.big,#d-sel details.sec>summary.sec-t{position:absolute!important;top:-23px;left:calc(var(--tab,0%) - 1px);margin:0!important;height:23px;border:1px solid var(--rule);border-bottom:0;background:var(--bg);padding:0 10px;z-index:2}
+.blk>summary.sec-t.big::after,.blk>.sec-t.big::after,#d-sel details.sec>summary.sec-t::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--bg)}
+/* fichas cerradas: solo asoma el canto, apiladas como en el cajón */
+details.blk:not([open]),#d-sel details.sec:not([open]){padding:0!important;height:9px;margin-bottom:32px!important;box-shadow:0 3px 0 -1px #fff,0 3px 0 0 var(--rule),0 6px 0 -1px #fff,0 6px 0 0 var(--rule)}
+#d-ver{--tab:0%}#d-fil{--tab:34%}#d-tipo{--tab:0%}#d-ambito{--tab:34%}#d-ancla{--tab:62%}#d-sent{--tab:0%}#d-edit{--tab:34%}
+.side .grid2 label:last-child,.side .switch:last-child{border-bottom:0}
+#d-sel .def{margin-top:0}
+.edtools{gap:0}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -642,6 +658,8 @@ body.ui-off main{padding-left:var(--pad)}
       <label class="tolrow mono">Precisión<input type="range" id="tol" min="8" max="45" step="1"><span id="tolV"></span></label>
       <div class="actions" style="padding:0"><button type="button" class="btn" id="colClear">Quitar color</button><button type="button" class="btn primary" id="colOk">Listo</button></div>
     </div>
+  </details>
+
     <div id="d-sel">
     <details class="sec" id="d-tipo" open><summary class="sec-t">Tipo<span class="chev" aria-hidden="true"></span></summary><p class="def">Qué objeto es. Los tipos van juntos por familias: cada familia es un libro y, dentro, el tipo distingue.</p><div class="rows" id="f-tipo"></div></details>
     <details class="sec" id="d-ambito" open><summary class="sec-t">Ámbito<span class="chev" aria-hidden="true"></span></summary><p class="def">El tema. Lista cerrada; cada pieza tiene al menos uno y son las etiquetas del libro.</p><div class="rows small" id="f-ambito"></div></details>
@@ -651,7 +669,6 @@ body.ui-off main{padding-left:var(--pad)}
     <details class="sec" id="d-sent" open><summary class="sec-t">Sentimientos<span class="chev" aria-hidden="true"></span></summary><p class="def">Lo que despierta cada pieza, con su intensidad. Lista abierta: las palabras aparecen al usarlas.</p>
       <div class="rows small scroll" id="f-sent"></div></details>
     </div>
-  </details>
 
   <div class="card2 pad blk edtools" id="d-edit">
     <div class="sec-t big">Edición</div>
