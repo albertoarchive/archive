@@ -1,0 +1,86 @@
+/* =====================================================================
+   Capa editorial (13/11/2026)
+   Lenguaje de las referencias: Onkruid (Vrints-Kolsteren), Théâtre de la
+   Ville e Ícaro Chaparro. Grotesca en todo, tablas abiertas con filetes,
+   cabeceras corridas en columnas y títulos muy grandes.
+   Se carga después del estilo principal y solo sobrescribe: la lógica de
+   archivo (registro, n.º en rojo, ficha de catalogación, sello) se queda.
+   ===================================================================== */
+:root{
+  --f-mono:"Geist",ui-sans-serif,system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif; /* datos en grotesca, como en Onkruid */
+  --lab-size:11px; --lab-track:.02em;
+}
+body{font-variant-numeric:tabular-nums}
+
+/* etiquetas: versal pequeña y sin espaciar, como las cabeceras de Ícaro Chaparro */
+.lbl,.flab,.sec-t,.u-tabla th,.list th,.list th button,.f-meta dt,.side .grid2 label,.switch b,.side-head #sideHide,.side-head .head-n::before,.views button{
+  font-size:var(--lab-size)!important;letter-spacing:var(--lab-track)!important;font-weight:400!important}
+
+/* ---------- portada: el libro de registro con la cabecera de Onkruid ---------- */
+.u-libro{max-width:1240px}
+.u-cab,.u-cab2{border:0!important;border-top:1px solid var(--rule)!important}
+.u-cab>div,.u-cab2>div,.u-cab2>div+div{border-left:0!important;padding:8px 0 12px!important}
+.u-cab{grid-template-columns:1fr 160px 160px;column-gap:24px}
+.u-cab2{grid-template-columns:1fr 1fr;column-gap:24px}
+.u-cab>div:first-child{grid-column:1/-1;padding-bottom:18px!important}
+.u-cab>div:first-child .lbl{order:2;margin-top:10px}
+.u-cab h1{font-size:clamp(38px,11vw,180px)!important;font-weight:500!important;letter-spacing:-.055em!important;line-height:.82!important;margin-left:-.04em!important}
+.u-cab>div:nth-child(2){border-top:1px solid var(--rule)!important}
+.u-cab>div:nth-child(3){border-top:1px solid var(--rule)!important}
+.u-cab .v{font-size:15px}
+.u-t{font-size:clamp(18px,1.8vw,24px)!important;letter-spacing:-.015em!important;line-height:1.2!important}
+.u-tabla{font-size:13px}
+.u-tabla th{border-bottom:1px solid var(--rule)}
+.u-tabla td{padding:7px 10px 7px 0}
+.u-tabla tr td{border-bottom:1px solid var(--line)}
+@media (max-width:860px){
+  .u-cab{grid-template-columns:1fr 1fr}
+  .u-cab>div:nth-child(2){border-left:0!important}
+}
+
+/* ---------- pestañas de vista: cabecera corrida en columnas ---------- */
+.views{border-bottom:0!important;border-top:1px solid var(--rule)!important;gap:0!important}
+.views button{border:0!important;margin:0!important;padding:6px 22px 0 0!important;background:none!important;box-shadow:none!important;text-transform:uppercase}
+.views button[aria-current="true"]{color:var(--fg)!important}
+.views button[aria-current="true"]::before{content:"→ "}
+
+/* botones: sin caja, solo el filete cuando importa */
+.ibtn{border:0!important;background:none!important}
+.ibtn:hover{background:none!important;color:var(--sello)!important}
+.searchbox.open,.searchbox.has{border:0!important;border-bottom:1px solid var(--rule)!important}
+
+/* ---------- panel lateral: de cajas a tabla abierta ---------- */
+.side-head{border:0!important;border-top:1px solid var(--rule)!important;margin-bottom:18px!important}
+.side-head .brand{font-size:26px!important;letter-spacing:-.04em!important;padding:6px 0 4px!important;font-weight:500!important}
+.side-head #sideHide{border-left:0!important;padding:0!important}
+.side-head .head-n{border-top:1px solid var(--line)!important;padding:6px 0!important;font-size:12px!important}
+.blk,#d-sel details.sec{border:0!important;border-top:1px solid var(--rule)!important;padding:0 0 6px!important;margin:0 0 16px!important}
+.blk>summary.sec-t.big,.blk>.sec-t.big,#d-sel details.sec>summary.sec-t{margin:0!important;padding:0!important;height:28px;font-weight:600!important;color:var(--fg)!important}
+.blk[open]>summary.sec-t.big,.blk>.sec-t.big,#d-sel details.sec[open]>summary.sec-t{border-bottom:0!important}
+.blk>summary:hover,#d-sel details.sec>summary:hover{background:none!important;color:var(--sello)!important}
+.side .grid2 label{border-bottom:1px solid var(--line)!important}
+.side .grid2 select,.side .colbtn,.side .seg button,.seg button,.switch small{font-size:12.5px!important}
+.seg button[aria-pressed="true"]{border-color:transparent!important;text-decoration:underline;text-underline-offset:3px}
+
+/* ---------- ficha: título grande y tabla de filetes, como Onkruid ---------- */
+.f-reg{border:0!important;border-top:1px solid var(--rule)!important;margin:0 0 22px!important}
+.f-reg .lbl{padding:7px 0!important}
+.f-reg .f-sub{padding:0 0 8px!important;font-size:12.5px!important}
+.f-reg .regn{border-left:0!important;font-size:44px!important;font-weight:500;letter-spacing:-.04em;padding:4px 0 0!important}
+.f-meta h1{font-size:clamp(30px,3.2vw,46px)!important;letter-spacing:-.04em!important;line-height:.98!important;font-weight:500!important;margin:10px 0 22px!important}
+.f-meta dl{border:0!important;border-bottom:1px solid var(--rule)!important;grid-template-columns:120px 1fr!important}
+.f-meta dt{border-right:0!important;border-top:1px solid var(--rule);padding:8px 0 7px!important;color:var(--muted)!important}
+.f-meta dd{border-top:1px solid var(--rule);padding:6px 0 7px!important;font-size:13px!important}
+.f-meta dt,.f-meta dd{border-bottom:0!important}
+.tags .tag{font-size:13px!important}
+@media (max-width:860px){
+  .f-meta dl{margin-left:0!important;margin-right:0!important}
+  .f-meta dt{padding-left:0!important}.f-meta dd{padding-right:0!important}
+}
+
+/* ---------- lista: programa por secciones, como Théâtre de la Ville ---------- */
+.list td{font-size:13px!important}
+.list tr.famrow td{font-family:var(--f-ui)!important;font-size:22px!important;letter-spacing:-.025em!important;text-transform:none!important;color:var(--fg)!important;font-weight:500!important;padding-top:34px!important;border-bottom:1px solid var(--rule)!important}
+
+/* etiqueta de pieza al pasar */
+.piece .cap{border:0!important;border-top:1px solid var(--rule)!important;font-size:11.5px!important}
