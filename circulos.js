@@ -78,8 +78,8 @@
   function dibujar(){
     const vista = typeof S !== "undefined" ? S.view : "galeria";
     const visible = on && (vista === "galeria" || vista === "timeline") && document.getElementById("ficha").hidden;
-    svg.hidden = !visible;
-    if (!visible) return;
+    // en un <svg> la propiedad .hidden no existe: hay que poner o quitar el atributo
+    if (visible) svg.removeAttribute("hidden"); else { svg.setAttribute("hidden", ""); svg.textContent = ""; return; }
     svg.textContent = "";
     const { cx, cy, R } = geo();
     const rc = AU.rc || .32;
