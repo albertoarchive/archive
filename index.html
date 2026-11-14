@@ -367,6 +367,15 @@ dd button:hover{text-decoration-color:currentColor}
 .imp-row .meta b{font-weight:500;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .imp-row .meta span{color:var(--muted)}
 .imp-row.err .meta span{color:var(--danger)}
+.imp-row.tras{grid-template-columns:34px 56px minmax(0,1fr) 56px auto}
+.imp-row.tras .bk{border:1px dashed var(--line);border-radius:2px}
+.imp-row.tras .bk.on{border-color:transparent}
+.imp-row.tras.drop{background:var(--chip)}
+.imp-row.tras.ok .meta span{color:var(--fg)}
+.imp-fam{font-size:13px;font-weight:600;padding:16px 0 4px;border-bottom:1px solid var(--rule)}
+.imp-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.imp-tools input{flex:1;min-width:160px}
+.imp .linkb{background:none;border:0;padding:0;color:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer;font:inherit}
 .bar{height:4px;background:var(--chip);border-radius:2px;overflow:hidden;margin:10px 0}
 .bar i{display:block;height:100%;background:var(--fg);width:0;transition:width .2s}
 .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 60px);transform:translateX(-50%);z-index:60;background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:2px}
@@ -616,6 +625,7 @@ details.blk:not([open]),#d-sel details.sec:not([open]){padding-bottom:0!importan
 
 <div class="corner topr">
   <button class="ibtn" id="syncBtn" hidden title="Actualizar desde la carpeta"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.6-4.5M4 4v4h4M4 13a8 8 0 0 0 14.6 4.5M20 20v-4h-4"/></svg><span class="hide-sm">Actualizar</span></button>
+  <button class="ibtn" id="trasBtn" hidden title="Añadir traseras a las piezas que no tienen"><svg viewBox="0 0 24 24"><rect x="4" y="7" width="11" height="13" rx="1"/><path d="M9 4h10a1 1 0 0 1 1 1v12"/></svg><span class="hide-sm">Traseras</span></button>
   <button class="ibtn" id="webBtn" hidden title="Descargar la web pública (zip para Netlify)"><svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span class="hide-sm">Web</span></button>
   <button class="ibtn" id="addBtn" hidden title="Añadir pieza"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span class="hide-sm">Añadir</span></button>
   <button class="ibtn" id="sndBtn" aria-pressed="true" title="Sonido (M)" aria-label="Sonido"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="on" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/><path class="off" d="M16 9l5 6M21 9l-5 6"/></svg></button>
@@ -737,6 +747,7 @@ details.blk:not([open]),#d-sel details.sec:not([open]){padding-bottom:0!importan
   </div>
 </div>
 <input type="file" id="dirIn" webkitdirectory directory multiple hidden>
+<input type="file" id="trsIn" accept="image/*,.pdf" hidden>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs id="dzdefs"></defs></svg>
 <datalist id="dl-tipo"></datalist><datalist id="dl-sent"></datalist><datalist id="dl-ambito"></datalist><datalist id="dl-ancla"></datalist>
@@ -1577,15 +1588,38 @@ $("#pm").addEventListener("keydown",e=>{if(e.key==="Escape")pmClose();});
 document.addEventListener("keydown",e=>{if($("#pm").hidden||PM.mode!=="proc"||e.target.id==="pmDe")return;if(!PM.q.length&&PM.elige){if(e.key==="1"&&PM.elige[0].length){e.preventDefault();$("#pmFaltan").click();}if(e.key==="2"){e.preventDefault();$("#pmTodas").click();}return;}const id=PM.q[PM.i],d=id&&D.find(x=>x.id===id);if(!d)return;
   const k=+e.key;if(k>=1&&k<=PROCS.length){e.preventDefault();pmSet(d,PROCS[k-1][0]);}
   else if(e.key==="ArrowRight"){e.preventDefault();PM.i++;pmDraw();}else if(e.key==="ArrowLeft"||e.key==="Backspace"){e.preventDefault();pmBack();}},true);
-function impOpen(){$("#imp").hidden=false;document.body.style.overflow="hidden";impStart();}
-function impClose(){$("#imp").hidden=true;document.body.style.overflow="";IMP.forEach(x=>x.url&&URL.revokeObjectURL(x.url));IMP=[];$("#syncBtn").focus();}
-function impStart(){
-  $("#impBody").innerHTML=`<p>Elige la carpeta <b>Recortado</b> de tu ordenador. La página compara sus archivos con el archivo y te enseña solo los que todavía no están.</p>
+function impOpen(){$("#imp-t").textContent="Actualizar desde la carpeta";$("#imp").hidden=false;document.body.style.overflow="hidden";impStart();}
+function impClose(){$("#imp").hidden=true;document.body.style.overflow="";IMP.forEach(x=>x.url&&URL.revokeObjectURL(x.url));IMP=[];TRS.forEach(x=>x.url&&URL.revokeObjectURL(x.url));TRS=[];($("#imp").dataset.modo==="tras"?$("#trasBtn"):$("#syncBtn")).focus();$("#imp").dataset.modo="";}
+/* ---------- Carpeta vinculada: se elige una vez y el navegador la recuerda (Chrome, Edge, Arc, Brave). En Safari y Firefox hay que elegirla cada vez ---------- */
+const FS_OK="showDirectoryPicker" in window;
+let IDB=null;const idb=()=>IDB||(IDB=new Promise((ok,ko)=>{const r=indexedDB.open("archivo",1);r.onupgradeneeded=()=>r.result.createObjectStore("kv");r.onsuccess=()=>ok(r.result);r.onerror=()=>ko(r.error);}));
+async function kvGet(k){try{const b=await idb();return await new Promise(ok=>{const r=b.transaction("kv").objectStore("kv").get(k);r.onsuccess=()=>ok(r.result||null);r.onerror=()=>ok(null);});}catch(e){return null;}}
+async function kvSet(k,v){try{const b=await idb();await new Promise(ok=>{const t=b.transaction("kv","readwrite");t.objectStore("kv").put(v,k);t.oncomplete=ok;t.onerror=ok;});}catch(e){}}
+let CARPETA=null;
+async function carpetaGuardada(){if(!FS_OK)return null;if(!CARPETA)CARPETA=await kvGet("carpeta");return CARPETA;}
+async function leerDir(h){const out=[];for await(const [name,e] of h.entries()){if(e.kind!=="file"||name.startsWith(".")||!/\.(jpe?g|png|webp|pdf)$/i.test(name))continue;try{out.push(await e.getFile());}catch(_){}}return out;}
+// pide permiso si hace falta (tiene que llamarse desde un clic); con cambiar=true abre el selector
+async function abrirCarpeta(cambiar,soloSiPermiso){
+  if(!FS_OK)return null;
+  let h=cambiar?null:await carpetaGuardada();
+  if(h){let p=await h.queryPermission({mode:"read"});if(p!=="granted"&&!soloSiPermiso){try{p=await h.requestPermission({mode:"read"});}catch(e){}}if(p!=="granted"){if(soloSiPermiso)return null;h=null;}}
+  if(!h){if(soloSiPermiso)return null;try{h=await showDirectoryPicker({id:"recortado",mode:"read"});}catch(e){return null;}CARPETA=h;await kvSet("carpeta",h);}
+  return {nombre:h.name,files:await leerDir(h)};
+}
+let IMPDIR="";
+async function elegirCarpeta(cambiar){
+  if(!FS_OK){$("#dirIn").value="";$("#dirIn").click();return;}
+  const r=await abrirCarpeta(cambiar);if(r){IMPDIR=r.nombre;impFiles(r.files);}
+}
+async function impStart(){
+  const h=await carpetaGuardada();
+  if(h){$("#impBody").innerHTML=`<p>Leyendo la carpeta <b>${esc(h.name)}</b>…</p>`;const r=await abrirCarpeta(false);if(r){IMPDIR=r.nombre;impFiles(r.files);return;}}
+  $("#impBody").innerHTML=`<p>${FS_OK?"Vincula la carpeta <b>Recortado</b> de tu ordenador. Solo hace falta una vez: después, <b>Actualizar</b> la lee directamente.":"Elige la carpeta <b>Recortado</b> de tu ordenador."} La página compara sus archivos con el archivo: añade los nuevos y actualiza los que hayas cambiado (recortado de nuevo, o una trasera nueva).</p>
   <p class="muted">Se leen JPG, PNG, WEBP y PDF. Tipo y ámbito salen del nombre del archivo (Tipo_Ámbito_Nombre); las medidas, de la resolución del escaneo; los colores, de la imagen. El pie queda vacío para que lo escribas tú.</p>
   <div class="actions" style="padding:0"><button class="btn primary" id="impPick">Elegir carpeta</button></div>`;
-  $("#impPick").onclick=()=>{$("#dirIn").value="";$("#dirIn").click();};$("#impPick").focus();
+  $("#impPick").textContent=FS_OK?"Vincular carpeta":"Elegir carpeta";$("#impPick").onclick=()=>elegirCarpeta(true);$("#impPick").focus();
 }
-$("#dirIn").onchange=()=>impFiles([...$("#dirIn").files]);
+$("#dirIn").onchange=()=>{IMPDIR="";impFiles([...$("#dirIn").files]);};
 // marcas de cara en el nombre: pueden ir pegadas a una palabra (ChewbaccaDetras), sueltas (_Detras_2016) o con espacios
 const BACK_RE=/(detr[aá]s|reverso|atr[aá]s)(?=[\s_\-.]|$)/i;
 const SIDE_RE=/[\s_-]*(detr[aá]s|reverso|atr[aá]s|delante|anverso|frente|copia)(?=[\s_\-.\d]|$)/gi;
@@ -1610,32 +1644,40 @@ function impFiles(all){
     if(fr)taken.add(fr);if(bk2)taken.add(bk2);
     if(fr||bk2)SUST.push({kind:"sustituir",piece:d,f:fr||bk2,front:fr,back:bk2,g:{titulo:d.titulo,tipo:d.tipo,ambitos:AMB(d)},on:true,url:thumbUrl(fr||bk2)});});
   nuevos=nuevos.filter(f=>!taken.has(f));
-  if(!files.length){$("#impBody").innerHTML=`<p>Esa carpeta no tiene imágenes ni PDF en el primer nivel. Elige la carpeta <b>Recortado</b>.</p><div class="actions" style="padding:0"><button class="btn primary" id="impPick">Elegir otra carpeta</button></div>`;$("#impPick").onclick=()=>{$("#dirIn").value="";$("#dirIn").click();};return;}
-  if(!nuevos.length&&!SUST.length){$("#impBody").innerHTML=`<p>Todo al día: los ${files.length} archivos de la carpeta ya están en el archivo.</p><div class="actions" style="padding:0"><button class="btn primary" id="impDone">Cerrar</button></div>`;$("#impDone").onclick=impClose;return;}
+  // cambios: el mismo archivo, guardado después de la última vez que se subió (recortado de nuevo)
+  const byName=new Map();D.forEach(d=>{if(d.archivo)byName.set(d.archivo.normalize("NFC"),[d,0]);if(d.archivo_reverso)byName.set(d.archivo_reverso.normalize("NFC"),[d,1]);});
+  const CAMB=files.map(f=>{const m=byName.get(f.name.normalize("NFC"));if(!m)return null;const [d,side]=m;if(!(d.img&&d.img[side]))return null;
+    const ref=+(side?d.archivo_reverso_mt:d.archivo_mt)||Date.parse(d.editado||0)||0;
+    return f.lastModified>ref+2000?{kind:"cambio",piece:d,side,f,g:{titulo:d.titulo,tipo:d.tipo,ambitos:AMB(d)},on:true,url:thumbUrl(f)}:null;}).filter(Boolean);
+  const dirLine=IMPDIR?`<p class="mono muted">Carpeta vinculada: <b>${esc(IMPDIR)}</b> · <button class="linkb" id="impChange">Cambiar</button></p>`:"";
+  const wireChange=()=>{const b=$("#impChange");if(b)b.onclick=()=>elegirCarpeta(true);};
+  if(!files.length){$("#impBody").innerHTML=`<p>Esa carpeta no tiene imágenes ni PDF en el primer nivel. Elige la carpeta <b>Recortado</b>.</p><div class="actions" style="padding:0"><button class="btn primary" id="impPick">Elegir otra carpeta</button></div>`;$("#impPick").onclick=()=>elegirCarpeta(true);return;}
+  if(!nuevos.length&&!SUST.length&&!CAMB.length){$("#impBody").innerHTML=`${dirLine}<p>Todo al día: los ${files.length} archivos de la carpeta ya están en el archivo y ninguno ha cambiado.</p><div class="actions" style="padding:0"><button class="btn primary" id="impDone">Cerrar</button></div>`;wireChange();$("#impDone").onclick=impClose;return;}
   // emparejar reversos: "…Detras" es la cara de atrás del archivo con el mismo nombre
   const fronts=nuevos.filter(f=>!isBack(f.name)),backs=nuevos.filter(f=>isBack(f.name)),used=new Set();
-  IMP=[...SUST,...fronts.map(f=>{const b=files.find(x=>isBack(x.name)&&backKey(x.name)===frontKey(f.name)&&!have.has(x.name.normalize("NFC")));if(b)used.add(b);
+  IMP=[...CAMB,...SUST,...fronts.map(f=>{const b=files.find(x=>isBack(x.name)&&backKey(x.name)===frontKey(f.name)&&!have.has(x.name.normalize("NFC")));if(b)used.add(b);
     return {kind:"nueva",f,back:b||null,g:guess(f.name),on:true,url:thumbUrl(f)};})];
   backs.filter(b=>!used.has(b)).forEach(b=>{const piece=D.find(d=>d.archivo&&frontKey(d.archivo)===backKey(b.name));
     if(piece&&piece.img&&piece.img.length>1)return; // ya tiene reverso: no se toca
     IMP.push(piece?{kind:"reverso",f:b,piece,g:{titulo:piece.titulo,tipo:piece.tipo,ambitos:AMB(piece)},on:true,url:thumbUrl(b)}
                :{kind:"huerfano",f:b,g:guess(b.name),on:false,url:thumbUrl(b)});});
-  if(!IMP.length){$("#impBody").innerHTML=`<p>Todo al día: no hay piezas ni reversos nuevos en la carpeta.</p><div class="actions" style="padding:0"><button class="btn primary" id="impDone">Cerrar</button></div>`;$("#impDone").onclick=impClose;return;}
+  if(!IMP.length){$("#impBody").innerHTML=`${dirLine}<p>Todo al día: no hay piezas, cambios ni reversos nuevos en la carpeta.</p><div class="actions" style="padding:0"><button class="btn primary" id="impDone">Cerrar</button></div>`;wireChange();$("#impDone").onclick=impClose;return;}
   const nOn=IMP.filter(x=>x.on).length;
-  $("#impBody").innerHTML=`<p>${(()=>{const a=IMP.filter(x=>x.kind==="nueva").length,r=IMP.filter(x=>x.kind==="reverso").length,su=IMP.filter(x=>x.kind==="sustituir").length;return [su?`<b>${su}</b> ${su===1?"imagen sustituida":"imágenes sustituidas"} (la pieza conserva sus datos y medidas)`:"",a?`<b>${a}</b> ${a===1?"pieza nueva":"piezas nuevas"}`:"",r?`<b>${r}</b> ${r===1?"reverso para una pieza":"reversos para piezas"} que ya tienes`:""].filter(Boolean).join(", ");})()}. Los archivos que acaban en <b>Detras</b> se usan como reverso. Desmarca los que no quieras añadir; podrás corregir cualquier dato después con Editar.</p>
-  <div class="imp-list">${IMP.map((x,i)=>`<label class="imp-row" id="ir${i}"><input type="checkbox" data-i="${i}" ${x.on?"checked":""} ${x.kind==="huerfano"?"disabled":""}><span class="th">${x.url?`<img src="${x.url}" alt="">`:`<span class="mono muted">PDF</span>`}</span><span class="meta"><b>${esc(x.g.titulo)}${x.kind==="reverso"?` <span class="mono muted">· reverso nuevo</span>`:""}</b><span class="mono">${
-    x.kind==="nueva"?`${esc(x.g.tipo)} · ${esc(x.f.name.normalize("NFC"))}${x.back?` + reverso ${esc(x.back.name.normalize("NFC"))}`:""}`
+  $("#impBody").innerHTML=`${dirLine}<p>${(()=>{const a=IMP.filter(x=>x.kind==="nueva").length,r=IMP.filter(x=>x.kind==="reverso").length,su=IMP.filter(x=>x.kind==="sustituir").length,ca=IMP.filter(x=>x.kind==="cambio").length;return [ca?`<b>${ca}</b> ${ca===1?"imagen cambiada":"imágenes cambiadas"} desde la última vez (se sustituyen; datos y medidas se quedan)`:"",su?`<b>${su}</b> ${su===1?"imagen sustituida":"imágenes sustituidas"} (la pieza conserva sus datos y medidas)`:"",a?`<b>${a}</b> ${a===1?"pieza nueva":"piezas nuevas"}`:"",r?`<b>${r}</b> ${r===1?"reverso para una pieza":"reversos para piezas"} que ya tienes`:""].filter(Boolean).join(", ");})()}. Los archivos que acaban en <b>Detras</b> se usan como reverso. Desmarca los que no quieras añadir; podrás corregir cualquier dato después con Editar.</p>
+  <div class="imp-list">${IMP.map((x,i)=>`<label class="imp-row" id="ir${i}"><input type="checkbox" data-i="${i}" ${x.on?"checked":""} ${x.kind==="huerfano"?"disabled":""}><span class="th">${x.url?`<img src="${x.url}" alt="">`:`<span class="mono muted">PDF</span>`}</span><span class="meta"><b>${esc(x.g.titulo)}${x.kind==="reverso"?` <span class="mono muted">· reverso nuevo</span>`:x.kind==="cambio"?` <span class="mono muted">· ${x.side?"reverso":"anverso"} cambiado</span>`:""}</b><span class="mono">${
+    x.kind==="cambio"?`N.º ${x.piece.n} · ${esc(x.f.name.normalize("NFC"))} · guardado el ${new Date(x.f.lastModified).toLocaleString("es-ES",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}`
+    :x.kind==="nueva"?`${esc(x.g.tipo)} · ${esc(x.f.name.normalize("NFC"))}${x.back?` + reverso ${esc(x.back.name.normalize("NFC"))}`:""}`
     :x.kind==="sustituir"?`Sustituye a ${esc((x.front?x.piece.archivo:x.piece.archivo_reverso||"").normalize("NFC"))} → ${esc(x.f.name.normalize("NFC"))}${x.front&&x.back?` + reverso ${esc(x.back.name.normalize("NFC"))}`:""}`
     :x.kind==="reverso"?`Se añade como reverso de la pieza que ya está · ${esc(x.f.name.normalize("NFC"))}`
     :`No encuentro su anverso en la carpeta ni en el archivo · ${esc(x.f.name.normalize("NFC"))}`}</span></span></label>${x.kind==="nueva"?`<div class="ambpick imp-amb" data-i="${i}">${ambChips(x.g.ambitos)}</div>`:""}`).join("")}</div>
   <div class="bar" id="impBar" hidden><i></i></div><p class="mono muted" id="impMsg" hidden></p>
-  <div class="actions" style="padding:0"><button class="btn primary" id="impGo">Añadir ${nOn}</button><button class="btn" id="impBack">Elegir otra carpeta</button></div>`;
+  <div class="actions" style="padding:0"><button class="btn primary" id="impGo">Aplicar ${nOn}</button><button class="btn" id="impBack">${IMPDIR?"Cambiar de carpeta":"Elegir otra carpeta"}</button></div>`;
   const impCheck=()=>{const n=IMP.filter(x=>x.on).length,falta=IMP.filter(x=>x.on&&x.kind==="nueva"&&!x.g.ambitos.some(a=>a!=="Sin ámbito")).length;
-    $("#impGo").textContent=falta?`Falta el ámbito en ${falta}`:`Añadir ${n}`;$("#impGo").disabled=!n||!!falta;};
+    $("#impGo").textContent=falta?`Falta el ámbito en ${falta}`:`Aplicar ${n}`;$("#impGo").disabled=!n||!!falta;};
   $("#impBody").querySelectorAll("input[data-i]").forEach(c=>c.onchange=()=>{IMP[+c.dataset.i].on=c.checked;impCheck();});
   $("#impBody").querySelectorAll(".imp-amb").forEach(w=>wireChips(w,()=>IMP[+w.dataset.i].g.ambitos,v=>{IMP[+w.dataset.i].g.ambitos=v.length?v:["Sin ámbito"];impCheck();}));
-  impCheck();
-  $("#impBack").onclick=()=>{$("#dirIn").value="";$("#dirIn").click();};
+  impCheck();wireChange();
+  $("#impBack").onclick=()=>elegirCarpeta(true);
   $("#impGo").onclick=impRun;
 }
 async function impRun(){
@@ -1647,17 +1689,23 @@ async function impRun(){
     const x=todo[k],row=$("#ir"+IMP.indexOf(x)),sp=row.querySelector(".meta span");
     $("#impMsg").textContent=`${k+1} de ${todo.length} · ${x.f.name.normalize("NFC")}`;
     try{
+      if(x.kind==="cambio"){
+        const pf=await prepFile(x.f),img=[...(x.piece.img||[])];img[x.side]=(await assets.upload(pf.blobs[0],{type:"image/webp"})).id;
+        if(x.side===0&&pf.blobs[1]&&!x.piece.archivo_reverso)img[1]=(await assets.upload(pf.blobs[1],{type:"image/webp"})).id;
+        const upd={img,editado:new Date().toISOString(),[x.side?"archivo_reverso_mt":"archivo_mt"]:x.f.lastModified};
+        await db.doc("piezas/"+x.piece.id).update(upd);Object.assign(x.piece,upd);COL.delete(x.piece.id);ok++;sp.textContent="Imagen actualizada";
+        $("#impBar i").style.width=((k+1)/todo.length*100)+"%";continue;}
       if(x.kind==="sustituir"){
         const img=[...(x.piece.img||[])],upd={editado:new Date().toISOString()};
-        if(x.front){const pf=await prepFile(x.front),u0=await assets.upload(pf.blobs[0],{type:"image/webp"});img[0]=u0.id;upd.archivo=x.front.name;
+        if(x.front){const pf=await prepFile(x.front),u0=await assets.upload(pf.blobs[0],{type:"image/webp"});img[0]=u0.id;upd.archivo=x.front.name;upd.archivo_mt=x.front.lastModified;
           if(!x.back&&pf.blobs[1]){const u1=await assets.upload(pf.blobs[1],{type:"image/webp"});img[1]=u1.id;}
           else if(!x.back&&/\.pdf$/i.test(x.piece.archivo||"")&&img.length>1&&!x.piece.archivo_reverso)img.length=1;}
-        if(x.back){const pb=await prepFile(x.back),u1=await assets.upload(pb.blobs[0],{type:"image/webp"});img[1]=u1.id;upd.archivo_reverso=x.back.name;}
+        if(x.back){const pb=await prepFile(x.back),u1=await assets.upload(pb.blobs[0],{type:"image/webp"});img[1]=u1.id;upd.archivo_reverso=x.back.name;upd.archivo_reverso_mt=x.back.lastModified;}
         upd.img=img;await db.doc("piezas/"+x.piece.id).update(upd);Object.assign(x.piece,upd);COL.delete(x.piece.id);ok++;sp.textContent="Imagen sustituida";
         $("#impBar i").style.width=((k+1)/todo.length*100)+"%";continue;}
       if(x.kind==="reverso"){
         const pb=await prepFile(x.f),up=await assets.upload(pb.blobs[0],{type:"image/webp"});
-        const img=[x.piece.img[0],up.id],upd={img,archivo_reverso:x.f.name,editado:new Date().toISOString()};
+        const img=[x.piece.img[0],up.id],upd={img,archivo_reverso:x.f.name,archivo_reverso_mt:x.f.lastModified,editado:new Date().toISOString()};
         await db.doc("piezas/"+x.piece.id).update(upd);Object.assign(x.piece,upd);ok++;sp.textContent="Reverso añadido";
         $("#impBar i").style.width=((k+1)/todo.length*100)+"%";continue;}
       const pr=await prepFile(x.f),ids=[];
@@ -1666,7 +1714,7 @@ async function impRun(){
       if(/^mu[nñ]eco/i.test(x.f.name.normalize("NFC"))&&/sta?r ?wars/i.test(x.f.name)){extra={aspecto:+(pr.ancho/pr.alto).toFixed(4),ambitos:["Cine"],ambito:"Cine",anclas:["Star Wars","Lego"],ancla:"Star Wars"};pr.ancho=15;pr.alto=40;pr.estimada=false;x.g.titulo=x.g.titulo.replace(/^(lego\s+)?sta?r\s*wars\s+/i,"");}
       for(const b of pr.blobs){const up=await assets.upload(b,{type:"image/webp"});ids.push(up.id);}
       n++;const id=slug(x.g.titulo)+"-"+Math.random().toString(36).slice(2,6);
-      const doc={id,n,archivo:x.f.name,archivo_reverso:x.back?x.back.name:null,img:ids,titulo:x.g.titulo,tipo:x.g.tipo,ambitos:x.g.ambitos,ambito:x.g.ambitos[0],anclas:x.g.anclas,ancla:x.g.anclas[0],anio:x.g.anio||null,lugar:x.g.lugar||null,
+      const doc={id,n,archivo:x.f.name,archivo_mt:x.f.lastModified,archivo_reverso:x.back?x.back.name:null,archivo_reverso_mt:x.back?x.back.lastModified:null,img:ids,titulo:x.g.titulo,tipo:x.g.tipo,ambitos:x.g.ambitos,ambito:x.g.ambitos[0],anclas:x.g.anclas,ancla:x.g.anclas[0],anio:x.g.anio||null,lugar:x.g.lugar||null,
         ancho:pr.ancho,alto:pr.alto,medida_estimada:pr.estimada,procedencia:null,pie:"",nota:null,nivel:"Catalogado",editado:new Date().toISOString(),...extra};
       await db.doc("piezas/"+id).set(doc);D.push(norm(doc));ok++;
       sp.textContent="Añadida · "+(pr.estimada?"≈ ":"")+pr.ancho+"×"+pr.alto+" mm"+(pr.dpi?` (${pr.dpi} ppp)`:pr.estimada?" (estimada: la imagen no trae resolución)":"")+(pr.blobs.length>1?" · anverso y reverso":"");
@@ -1677,6 +1725,63 @@ async function impRun(){
   $("#impGo").textContent="Listo";$("#impGo").disabled=false;$("#impGo").onclick=impClose;$("#impBack").hidden=true;
   P.sig="";render();computeColors();
 }
+/* ---------- Traseras: todas las piezas que no tienen, para ir añadiéndolas ---------- */
+let TRS=[],TRS_I=-1,TRS_DIR=null;
+function trasOpen(){$("#imp").dataset.modo="tras";$("#imp-t").textContent="Añadir traseras";$("#imp").hidden=false;document.body.style.overflow="hidden";
+  const ord=(a,b)=>FAM_ORDER.indexOf(FAM(a))-FAM_ORDER.indexOf(FAM(b))||a.tipo.localeCompare(b.tipo,"es")||a.n-b.n;
+  TRS=D.filter(d=>(d.img||[]).length<2).sort(ord).map(d=>({d,f:null,url:null,auto:false,st:""}));
+  trasBody();abrirCarpeta(false,true).then(r=>{if(r){TRS_DIR=r.nombre;trasMatch(r.files);}});}
+const trasKey=d=>d.archivo?frontKey(d.archivo):plain(d.titulo||"");
+function trasMatch(files,manual){ // empareja por nombre: «…_Detras» con el anverso de la pieza
+  const usados=new Set(D.map(d=>(d.archivo_reverso||"").normalize("NFC")).filter(Boolean));let n=0;
+  const libres=files.filter(f=>!usados.has(f.name.normalize("NFC"))&&(manual||isBack(f.name)));
+  TRS.forEach(x=>{if(x.f||x.st==="ok")return;const f=libres.find(f=>(isBack(f.name)?backKey(f.name):sideKey(f.name))===trasKey(x.d));if(f){x.f=f;x.url=thumbUrl(f);x.auto=true;n++;}});
+  trasBody();if(n)toast(n===1?"1 trasera encontrada en la carpeta":n+" traseras encontradas en la carpeta");else if(manual)toast("Ningún archivo coincide por nombre: arrástralo sobre su fila");}
+function trasRows(){const q=plain(($("#trsQ")||{}).value||"");let fam=null,h="";
+  TRS.forEach((x,i)=>{const d=x.d;if(q&&!plain([d.titulo,d.tipo,d.n,d.archivo||""].join(" ")).includes(q))return;
+    if(FAM(d)!==fam){fam=FAM(d);h+=`<div class="imp-fam">${esc(fam)} <span class="mono muted">${TRS.filter(y=>FAM(y.d)===fam&&(y.d.img||[]).length<2).length}</span></div>`;}
+    h+=`<div class="imp-row tras${x.st==="ok"?" ok":x.st==="err"?" err":""}" data-i="${i}"><span class="mono muted">${String(d.n).padStart(3,"0")}</span>
+      <span class="th">${d.img&&d.img[0]?`<img src="${srcT(d.img[0])}" alt="" loading="lazy">`:""}</span>
+      <span class="meta"><b>${esc(d.titulo)}</b><span class="mono">${x.st==="ok"?"Trasera añadida":x.st==="err"?"No se pudo subir. Vuelve a intentarlo.":x.f?`${x.auto?"Encontrada en la carpeta":"Trasera"} · ${esc(x.f.name.normalize("NFC"))}`:esc(d.tipo)}</span></span>
+      <span class="th bk${x.f?" on":""}">${x.url?`<img src="${x.url}" alt="">`:x.f?`<span class="mono muted">PDF</span>`:""}</span>
+      ${x.st==="ok"?"<span></span>":`<button class="btn" data-a="${x.f?"quitar":"elegir"}" data-i="${i}">${x.f?"Quitar":"Elegir"}</button>`}</div>`;});
+  return h||`<p class="muted" style="padding:12px 0">Nada con ese filtro.</p>`;}
+function trasBody(){
+  const pend=TRS.filter(x=>x.st!=="ok"),n=pend.filter(x=>x.f).length,q=($("#trsQ")||{}).value||"";
+  $("#impBody").innerHTML=`<p><b>${pend.length}</b> ${pend.length===1?"pieza no tiene":"piezas no tienen"} trasera. Arrastra la imagen sobre su fila, o pulsa <b>Elegir</b>. También puedes soltar varias a la vez encima de la lista: se colocan solas por el nombre.</p>
+  <div class="imp-tools"><input type="search" id="trsQ" placeholder="Filtrar por título, tipo o n.º" value="${esc(q)}">${FS_OK?`<button class="btn" id="trsDir">${TRS_DIR?"Volver a buscar en "+esc(TRS_DIR):"Buscar en la carpeta"}</button>`:""}</div>
+  <div class="imp-list" id="trsList">${trasRows()}</div>
+  <div class="bar" id="impBar" hidden><i></i></div><p class="mono muted" id="impMsg" hidden></p>
+  <div class="actions" style="padding:0"><button class="btn primary" id="trsGo" ${n?"":"disabled"}>${n?`Subir ${n} ${n===1?"trasera":"traseras"}`:"Elige alguna trasera"}</button></div>`;
+  trasWire();}
+function trasWire(){
+  const L=$("#trsList");
+  $("#trsQ").oninput=()=>{L.innerHTML=trasRows();};
+  if($("#trsDir"))$("#trsDir").onclick=async()=>{const r=await abrirCarpeta(false);if(r){TRS_DIR=r.nombre;trasMatch(r.files);}};
+  L.onclick=e=>{const b=e.target.closest("button[data-a]");if(!b)return;const x=TRS[+b.dataset.i];
+    if(b.dataset.a==="quitar"){x.url&&URL.revokeObjectURL(x.url);x.f=null;x.url=null;x.auto=false;trasBody();}
+    else{TRS_I=+b.dataset.i;$("#trsIn").value="";$("#trsIn").click();}};
+  L.ondragover=e=>{e.preventDefault();const r=e.target.closest(".imp-row.tras");L.querySelectorAll(".drop").forEach(x=>x!==r&&x.classList.remove("drop"));if(r)r.classList.add("drop");};
+  L.ondragleave=e=>{if(!L.contains(e.relatedTarget))L.querySelectorAll(".drop").forEach(x=>x.classList.remove("drop"));};
+  L.ondrop=e=>{e.preventDefault();const fs=[...e.dataTransfer.files].filter(f=>/\.(jpe?g|png|webp|pdf)$/i.test(f.name));if(!fs.length)return;
+    const r=e.target.closest(".imp-row.tras");
+    if(r&&fs.length===1){trasPon(+r.dataset.i,fs[0]);}else trasMatch(fs,true);};
+  $("#trsGo").onclick=trasRun;}
+function trasPon(i,f){const x=TRS[i];if(!x||x.st==="ok")return;x.url&&URL.revokeObjectURL(x.url);x.f=f;x.url=thumbUrl(f);x.auto=false;x.st="";trasBody();}
+$("#trsIn").onchange=()=>{const f=$("#trsIn").files[0];if(f&&TRS_I>=0)trasPon(TRS_I,f);TRS_I=-1;};
+async function trasRun(){
+  const todo=TRS.filter(x=>x.f&&x.st!=="ok");if(!todo.length)return;
+  $("#trsGo").disabled=true;$("#impBar").hidden=false;$("#impMsg").hidden=false;let ok=0,bad=0;
+  for(let k=0;k<todo.length;k++){const x=todo[k];$("#impMsg").textContent=`${k+1} de ${todo.length} · ${x.d.titulo}`;
+    try{const pb=await prepFile(x.f),up=await assets.upload(pb.blobs[0],{type:"image/webp"});
+      const upd={img:[x.d.img[0],up.id],archivo_reverso:x.f.name,archivo_reverso_mt:x.f.lastModified,editado:new Date().toISOString()};
+      await db.doc("piezas/"+x.d.id).update(upd);Object.assign(x.d,upd);x.st="ok";ok++;}
+    catch(e){x.st="err";bad++;}
+    $("#impBar i").style.width=((k+1)/todo.length*100)+"%";}
+  trasBody();$("#impBar").hidden=false;$("#impBar i").style.width="100%";$("#impMsg").hidden=false;
+  $("#impMsg").textContent=bad?`${ok} traseras añadidas, ${bad} con error.`:`Hecho: ${ok} ${ok===1?"trasera añadida":"traseras añadidas"}.`;
+  P.sig="";render();}
+$("#trasBtn").onclick=trasOpen;
 $("#syncBtn").onclick=impOpen;$("#impClose").onclick=impClose;
 $("#imp").addEventListener("keydown",e=>{if(e.key==="Escape")impClose();});
 
@@ -2146,8 +2251,8 @@ const assetsWeb={async upload(blob,opt={}){
 async function loginWeb(tok){
   const r=await ghj("",{},tok);if(!r.permissions||!r.permissions.push)throw new Error("Ese token no puede escribir en "+REPO);
   return leerDatos(await cabeza(tok),tok);}
-function activar(){canEdit=true;assets=assetsWeb;$("#addBtn").hidden=false;$("#syncBtn").hidden=false;$("#loginBtn").textContent="Salir";document.body.classList.add("editor");P.sig="";render();}
-function salir(){TOKEN=null;try{localStorage.removeItem("arch-token")}catch(e){}canEdit=false;assets=null;$("#addBtn").hidden=true;$("#syncBtn").hidden=true;$("#loginBtn").textContent="Entrar";document.body.classList.remove("editor");if(!$("#ficha").hidden)drawFicha();render();}
+function activar(){canEdit=true;assets=assetsWeb;$("#addBtn").hidden=false;$("#syncBtn").hidden=false;$("#trasBtn").hidden=false;$("#loginBtn").textContent="Salir";document.body.classList.add("editor");P.sig="";render();}
+function salir(){TOKEN=null;try{localStorage.removeItem("arch-token")}catch(e){}canEdit=false;assets=null;$("#addBtn").hidden=true;$("#syncBtn").hidden=true;$("#trasBtn").hidden=true;$("#loginBtn").textContent="Entrar";document.body.classList.remove("editor");if(!$("#ficha").hidden)drawFicha();render();}
 function loginForm(){
   if(canEdit){if(Q.ops.length||Q.assets.length){estado("Espera a que se guarde antes de salir","err");return;}salir();return;}
   let f=$("#wLogin");if(f){f.remove();return;}
