@@ -95,3 +95,5 @@ body{font-variant-numeric:tabular-nums}
 .topr .searchbox.open,.topr .searchbox.has{background:var(--bg)}
 /* mientras se busca, los botones se quedan solo con el icono para no tapar las vistas */
 .topr:has(.searchbox.open) .hide-sm,.topr:has(.searchbox.has) .hide-sm{display:none}
+/* timeline: si una pieza no cabe en su columna, se reduce entera en vez de estirarse */
+.ygrid .piece{height:auto!important}
