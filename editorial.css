@@ -89,3 +89,9 @@ body{font-variant-numeric:tabular-nums}
 .bl .scalebar{width:170px;flex:none;overflow:hidden}
 .bl .scalebar i{max-width:100%}
 .zoomer #zPct{min-width:52px;text-align:center}
+
+/* barras flotantes con fondo, para que no se pierdan sobre los objetos */
+.topr,.corner.views{background:var(--bg)!important;padding:4px 10px!important}
+.topr .searchbox.open,.topr .searchbox.has{background:var(--bg)}
+/* mientras se busca, los botones se quedan solo con el icono para no tapar las vistas */
+.topr:has(.searchbox.open) .hide-sm,.topr:has(.searchbox.has) .hide-sm{display:none}
