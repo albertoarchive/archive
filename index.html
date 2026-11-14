@@ -1018,7 +1018,9 @@ let LZ=null;
 function renderLienzo(r){
   gk=SCALES[S.size];
   const gap=Math.round(10+gk*7), U=6;
-  const area=r.reduce((a,d)=>a+(W(d)*gk+gap)*(H(d)*gk+gap),0);
+  // el ancho del mosaico se calcula con el archivo tal como estaba el 13/11 (hasta el n.º 343): así las piezas nuevas se suman al final sin reordenar las de antes, y al entrar se ve y se oye lo mismo
+  const BASE_N=343,base=r.filter(d=>(d.n||0)<=BASE_N);
+  const area=(base.length?base:r).reduce((a,d)=>a+(W(d)*gk+gap)*(H(d)*gk+gap),0);
   const maxw=Math.max(...r.map(d=>W(d)*gk+gap));
   let TW=Math.max(maxw*2,Math.sqrt(area)*1.05,Math.min(innerWidth*.8,1400));
   const nc=Math.ceil(TW/U); TW=nc*U;
