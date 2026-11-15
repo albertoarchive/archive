@@ -862,7 +862,7 @@ function computeColors(){
   if(!todo.length){colorsReady=true;return;}
   let left=todo.length;
   // de pocas en pocas y con miniaturas, para no frenar la carga de la galería
-  const cola=todo.slice();const uno=()=>{const d=cola.shift();if(!d)return;const im=new Image();im.decoding="async";
+  const cola=todo.slice();const uno=()=>{const d=cola.shift();if(!d)return;const im=new Image();im.decoding="async";im.crossOrigin="anonymous"; // las piezas nuevas vienen de otro dominio: sin esto el lienzo no deja leer los colores
     im.onload=()=>{try{const c=analyse(im);if(c){c.src=d.img[0];COL.set(d.id,c);}}catch(e){}done();sig();};
     im.onerror=()=>{done();sig();};im.src=srcT(d.img[0]);};
   const sig=()=>(window.requestIdleCallback||setTimeout)(uno,{timeout:400});
