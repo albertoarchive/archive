@@ -1130,10 +1130,13 @@ function Hueco(g,celda){this.g=g;this.c=celda;this.m=new Map();this.r=[];}
 Hueco.prototype.libre=function(x,y,w,h){const g=this.g,c=this.c,i0=Math.floor((x-g)/c),i1=Math.floor((x+w+g)/c),j0=Math.floor((y-g)/c),j1=Math.floor((y+h+g)/c);
   for(let i=i0;i<=i1;i++)for(let j=j0;j<=j1;j++){const l=this.m.get(i+","+j);if(l)for(const r of l)if(x<r.x+r.w+g&&x+w+g>r.x&&y<r.y+r.h+g&&y+h+g>r.y)return false;}return true;};
 Hueco.prototype.poner=function(x,y,w,h){const r={x,y,w,h},c=this.c;for(let i=Math.floor(x/c);i<=Math.floor((x+w)/c);i++)for(let j=Math.floor(y/c);j<=Math.floor((y+h)/c);j++){const k=i+","+j;if(!this.m.has(k))this.m.set(k,[]);this.m.get(k).push(r);}};
-Hueco.prototype.cerca=function(p,tx,ty){const paso=Math.max(2,this.g*.5),key=Math.round(tx)+","+Math.round(ty);if(!this.r0)this.r0=new Map();
+Hueco.prototype.cerca=function(p,tx,ty){const paso=Math.max(2,this.g*.5,Math.min(p.w,p.h)*.12),key=Math.round(tx)+","+Math.round(ty);if(!this.r0)this.r0=new Map();
   let r=Math.max(0,(this.r0.get(key)||0)-this.c*1.5),a=r*2*Math.PI/paso; // lo de dentro ya está lleno: empieza cerca del último hueco
   for(let k=0;k<400000;k++){const x=tx+r*Math.cos(a)-p.w/2,y=ty+r*Math.sin(a)-p.h/2;if(this.libre(x,y,p.w,p.h)){this.poner(x,y,p.w,p.h);p.cx=x+p.w/2;p.cy=y+p.h/2;this.r0.set(key,Math.max(this.r0.get(key)||0,r));return;}
-    a+=paso/Math.max(r,paso);r=paso*a/(2*Math.PI);}};
+    a+=paso/Math.max(r,paso);r=paso*a/(2*Math.PI);}
+  // si no encontró hueco (pieza muy grande), la pone por fuera de todo lo colocado: nunca encima
+  let ext=0;for(const l of this.m.values())for(const q of l)ext=Math.max(ext,Math.hypot(q.x+q.w/2-tx,q.y+q.h/2-ty)+Math.max(q.w,q.h));
+  for(let an=0;an<Math.PI*2;an+=.15){const x=tx+(ext+Math.max(p.w,p.h))*Math.cos(an)-p.w/2,y=ty+(ext+Math.max(p.w,p.h))*Math.sin(an)-p.h/2;if(this.libre(x,y,p.w,p.h)){this.poner(x,y,p.w,p.h);p.cx=x+p.w/2;p.cy=y+p.h/2;return;}}};
 /* el color que mejor representa una pieza: el más vivo de su paleta, no el fondo blanco del papel */
 function colorVivo(d){const k=COL.get(d.id);if(!k)return null;let best=null,bs=-1;
   k.pal.forEach(c=>{if(c.p<.05)return;const v=c.s*(1-Math.abs(c.l-.5)*1.5)*Math.sqrt(c.p);if(v>bs){bs=v;best=c;}});
