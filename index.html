@@ -692,7 +692,7 @@ details.blk:not([open]),#d-sel details.sec:not([open]){padding-bottom:0!importan
 <div class="corner bl">
   <button id="aboutBtn" aria-expanded="false">Acerca del proyecto</button>
   <div class="scalebar mono" id="scalebar"></div>
-  <div class="zoomer mono" id="zoomer"><button id="zOut" title="Alejar (−)" aria-label="Alejar">−</button><button id="zPct" title="Volver al 100% (0)">100%</button><button id="zIn" title="Acercar (+)" aria-label="Acercar">+</button><span class="formas" id="formas" role="group" aria-label="Forma"><button data-f="base" aria-pressed="true">Mosaico</button><button data-f="circulo">Círculo</button><button data-f="espiral">Espiral</button><button data-f="anio">Por año</button><button data-f="color">Rueda de color</button><button data-f="tipo">Por tipo</button></span><button id="zMin" title="Vista mínima: todo el archivo de una vez, sin repetir (V)">Todo</button></div>
+  <div class="zoomer mono" id="zoomer"><button id="zOut" title="Alejar (−)" aria-label="Alejar">−</button><button id="zPct" title="Volver al 100% (0)">100%</button><button id="zIn" title="Acercar (+)" aria-label="Acercar">+</button><span class="formas" id="formas" role="group" aria-label="Forma"><button data-f="base" aria-pressed="true">Mosaico</button><button data-f="circulo">Círculo</button><button data-f="espiral">Espiral</button><button data-f="color">Rueda de color</button><button data-f="tipo">Por tipo</button></span><button id="zMin" title="Vista mínima: todo el archivo de una vez, sin repetir (V)">Todo</button></div>
 </div>
 <button class="mono uishow" id="uiShow" hidden>Mostrar interfaz <kbd>H</kbd></button>
 <div class="corner br mono">
@@ -1121,7 +1121,7 @@ function zoomAt(cx,cy,f){if(!isLienzo())return;if(P.solo){if(f<1)return;P.solo=f
 function zoomTo(z){if(P.solo){P.solo=false;$("#zMin").setAttribute("aria-pressed",false);}zoomAt(innerWidth/2,innerHeight/2,z/P.z);}
 
 /* ---------- Formas del lienzo: base, círculo, espiral, por año, rueda de color, por tipo ---------- */
-const FORMAS=[["base","Mosaico"],["circulo","Círculo"],["espiral","Espiral"],["anio","Por año"],["color","Rueda de color"],["tipo","Por tipo"]];
+const FORMAS=[["base","Mosaico"],["circulo","Círculo"],["espiral","Espiral"],["color","Rueda de color"],["tipo","Por tipo"]];
 let FORMA="base";
 function cajaItems(){let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;LZ.items.forEach(it=>{x0=Math.min(x0,it.x);y0=Math.min(y0,it.y);x1=Math.max(x1,it.x+it.w);y1=Math.max(y1,it.y+it.h);});
   (LZ.etqs||[]).forEach(e=>{x0=Math.min(x0,e.x);y0=Math.min(y0,e.y);x1=Math.max(x1,e.x+e.w);y1=Math.max(y1,e.y+e.h);});return {x0,y0,x1,y1};}
