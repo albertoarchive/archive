@@ -2133,7 +2133,8 @@ setInterval(refreshVivo,60e3);setInterval(()=>{if(TK.k>1){refreshVivo();tkBadge(
 const SUENO={t:0,iv:0,capa:null,ult:Date.now()};
 function suenoCapa(){if(!SUENO.capa){SUENO.capa=document.createElement("div");SUENO.capa.id="u-sueno";SUENO.capa.setAttribute("aria-hidden","true");$("#umbral").appendChild(SUENO.capa);}return SUENO.capa;}
 function suenoPieza(){const u=$("#umbral");if(!u||u.classList.contains("fuera")||!D.length){suenoParar();return;}
-  const d=D[Math.floor(Math.random()*D.length)],vw=innerWidth,vh=innerHeight,k=Math.min(vw,vh)/650; // misma escala para todas: px por mm
+  if(!SUENO.mazo||!SUENO.mazo.length){SUENO.mazo=D.slice();for(let i=SUENO.mazo.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[SUENO.mazo[i],SUENO.mazo[j]]=[SUENO.mazo[j],SUENO.mazo[i]];}} // baraja: no se repite ninguna hasta que salgan todas
+  const d=SUENO.mazo.pop(),vw=innerWidth,vh=innerHeight,k=Math.min(vw,vh)/650; // misma escala para todas: px por mm
   let w=W(d)*k,h=H(d)*k;const m=Math.max(w,h),lim=Math.min(vw,vh)*.7;if(m>lim){w*=lim/m;h*=lim/m;}if(Math.max(w,h)<70){const e=70/Math.max(w,h);w*=e;h*=e;}
   const im=new Image();im.decoding="async";im.alt="";im.src=srcT(d.img[0]);
   im.style.cssText=`width:${w}px;height:${h}px;left:${Math.random()*Math.max(0,vw-w)}px;top:${Math.random()*Math.max(0,vh-h)}px`;
