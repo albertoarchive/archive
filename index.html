@@ -2144,7 +2144,7 @@ function suenoPieza(){const u=$("#umbral");if(!u||u.classList.contains("fuera")|
     if(p<bp){bp=p;best={x,y};}}
   Object.assign(im.dataset,{x:best.x,y:best.y,w,h});
   im.style.cssText=`width:${w}px;height:${h}px;left:${best.x}px;top:${best.y}px`;
-  const poner=()=>{if(SUENO.ult!==t0||$("#umbral").classList.contains("fuera"))return;const c=suenoCapa();c.appendChild(im);while(c.children.length>45)c.firstChild.remove();};
+  const poner=()=>{if(SUENO.ult!==t0||$("#umbral").classList.contains("fuera"))return;const c=suenoCapa();c.appendChild(im);};
   im.decode().then(poner,()=>{});} // se pinta solo con la imagen entera ya decodificada: aparece de golpe, sin cargarse a trozos
 function suenoParar(){clearInterval(SUENO.iv);SUENO.iv=0;}
 function suenoDespierta(){SUENO.ult=Date.now();suenoParar();const c=SUENO.capa;if(c&&c.children.length){[...c.children].forEach(x=>x.classList.add("va"));setTimeout(()=>{[...c.children].forEach(x=>{if(x.classList.contains("va"))x.remove();});},450);}}
