@@ -93,10 +93,11 @@ h2{font-weight:400;font-size:21pt;letter-spacing:-.03em;line-height:1;margin:7mm
   <label id="telaL" hidden>Tela de este libro<span style="display:flex;gap:6px;align-items:center"><input type="color" id="tela" style="width:34px;height:30px;padding:0;border:1px solid #141414;border-radius:7px;background:none"><button type="button" id="telaR">Restablecer</button></span></label>
   <label>Tipos<div class="tipos" id="tipos"></div></label>
   <button class="pri" id="imp">Descargar PDF</button>
+  <button id="imp2" title="Abre el diálogo de impresión del navegador (texto vectorial)">Imprimir…</button>
   <div class="info" id="info">Cargando…</div>
 </div>
 <div class="ayuda">
-  <b>Para descargar el PDF:</b> «Descargar PDF» → en la ventana que se abre, destino <b>Guardar como PDF</b> · papel <b>A4 apaisado</b> · márgenes <b>Ninguno</b> · activa <b>Gráficos de fondo</b>.
+  <b>«Descargar PDF»</b> genera el archivo y lo guarda directamente en Descargas (A4 apaisado, ~240 ppp). «Imprimir…» abre el diálogo del navegador (texto vectorial): destino <b>Guardar como PDF</b> · márgenes <b>Ninguno</b> · <b>Gráficos de fondo</b>.
   Si imprimes en papel a doble cara, elige <b>voltear por el borde corto</b>: cada pieza es una hoja con [4 | 1] por fuera y [2 | 3] por dentro; se dobla por la línea discontinua y los dos taladros quedan junto al pliegue para el tornillo.
 </div>
 <div id="hojas"><div id="msg">Cargando el archivo…</div></div>
@@ -243,6 +244,71 @@ function pintar(){
   history.replaceState(null,"","#"+encodeURIComponent($("libro").value));
   colores();telaUI();
 }
+
+/* ---------- Descarga directa: cada hoja se dibuja como imagen y se monta un PDF A4 apaisado, sin diálogos ---------- */
+const blobData=b=>new Promise((ok,ko)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=ko;r.readAsDataURL(b)});
+let FONTCSS=null;
+async function fontCSS(){
+  if(FONTCSS!==null)return FONTCSS;
+  try{
+    let css="";
+    for(const l of document.querySelectorAll('link[rel=stylesheet][href*="fonts.googleapis"]'))css+=await (await fetch(l.href)).text();
+    const urls=[...new Set([...css.matchAll(/url\((https:[^)]+)\)/g)].map(m=>m[1]))];
+    for(const u of urls){const d=await blobData(await (await fetch(u)).blob());css=css.split(u).join(d)}
+    FONTCSS=css;
+  }catch(e){FONTCSS=""}
+  return FONTCSS;
+}
+const pgCSS=()=>[...document.querySelectorAll("style")].map(s=>s.textContent).join("\n");
+const MM=96/25.4,PW=297*MM,PH=210*MM,ESC=2.5;
+async function hojaJPEG(hoja,css){
+  const clone=hoja.cloneNode(true);
+  for(const im of clone.querySelectorAll("img")){try{im.setAttribute("src",await blobData(await (await fetch(im.getAttribute("src"))).blob()))}catch(e){}}
+  const body=new XMLSerializer().serializeToString(clone);
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${PW}" height="${PH}" viewBox="0 0 ${PW} ${PH}"><style><![CDATA[${css}\n.hoja{zoom:1!important;box-shadow:none!important;outline:0!important;margin:0!important}body{margin:0;background:none!important}]]></style><foreignObject x="0" y="0" width="${PW}" height="${PH}"><body xmlns="http://www.w3.org/1999/xhtml" style="margin:0;width:${PW}px;height:${PH}px">${body}</body></foreignObject></svg>`;
+  const img=new Image();await new Promise((ok,ko)=>{img.onload=ok;img.onerror=()=>ko(new Error("No se pudo dibujar una hoja"));img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg)});
+  const c=document.createElement("canvas");c.width=Math.round(PW*ESC);c.height=Math.round(PH*ESC);
+  const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.drawImage(img,0,0,c.width,c.height);
+  const blob=await new Promise(r=>c.toBlob(r,"image/jpeg",.88));
+  return{w:c.width,h:c.height,bytes:new Uint8Array(await blob.arrayBuffer())};
+}
+function pdfDe(pages){
+  const enc=new TextEncoder(),parts=[],offs=[];let len=0;
+  const put=x=>{const u=typeof x==="string"?enc.encode(x):x;parts.push(u);len+=u.length};
+  put("%PDF-1.4\n");
+  const PWp=(297*72/25.4).toFixed(2),PHp=(210*72/25.4).toFixed(2),kids=[];
+  pages.forEach((p,i)=>{
+    const pg=3+i*3,ct=pg+1,im=pg+2;kids.push(pg+" 0 R");
+    offs[pg]=len;put(`${pg} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PWp} ${PHp}] /Resources << /XObject << /Im0 ${im} 0 R >> >> /Contents ${ct} 0 R >>\nendobj\n`);
+    const cs=`q ${PWp} 0 0 ${PHp} 0 0 cm /Im0 Do Q`;
+    offs[ct]=len;put(`${ct} 0 obj\n<< /Length ${cs.length} >>\nstream\n${cs}\nendstream\nendobj\n`);
+    offs[im]=len;put(`${im} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${p.w} /Height ${p.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${p.bytes.length} >>\nstream\n`);put(p.bytes);put("\nendstream\nendobj\n");
+    p.bytes=null;
+  });
+  offs[1]=len;put("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+  offs[2]=len;put(`2 0 obj\n<< /Type /Pages /Kids [${kids.join(" ")}] /Count ${pages.length} >>\nendobj\n`);
+  const n=3+pages.length*3,xr=len;
+  let x=`xref\n0 ${n}\n0000000000 65535 f \n`;for(let i=1;i<n;i++)x+=String(offs[i]).padStart(10,"0")+" 00000 n \n";
+  put(x+`trailer\n<< /Size ${n} /Root 1 0 R >>\nstartxref\n${xr}\n%%EOF`);
+  return new Blob(parts,{type:"application/pdf"});
+}
+async function descargar(){
+  const b=$("imp");b.disabled=true;$("imp2").disabled=true;
+  try{
+    await PALP;
+    document.querySelectorAll("#hojas img[data-full]").forEach(i=>{i.src=i.dataset.full;i.removeAttribute("data-full")});
+    const imgs=[...document.querySelectorAll("#hojas img")];
+    await Promise.all(imgs.map(i=>i.complete?0:new Promise(r=>{i.onload=i.onerror=r})));
+    const css=(await fontCSS())+"\n"+pgCSS();
+    const hojas=[...document.querySelectorAll("#hojas .hoja")],pages=[];
+    for(let k=0;k<hojas.length;k++){b.textContent=`Generando PDF ${k+1}/${hojas.length}`;await new Promise(r=>setTimeout(r));pages.push(await hojaJPEG(hojas[k],css))}
+    b.textContent="Guardando…";
+    const blob=pdfDe(pages),a=document.createElement("a"),l=$("libro").value;
+    a.href=URL.createObjectURL(blob);a.download="archivo-personal-cuadernillos-"+(l==="todos"?"todos":l.toLowerCase())+".pdf";
+    document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),60000);
+  }catch(e){alert("No se pudo generar el PDF: "+e.message+"\nPrueba con «Imprimir…».")}
+  b.disabled=false;$("imp2").disabled=false;b.textContent="Descargar PDF";
+}
 async function imprimir(){
   const b=$("imp");b.disabled=true;await PALP;
   document.querySelectorAll("#hojas img[data-full]").forEach(i=>{i.src=i.dataset.full;i.removeAttribute("data-full")});
@@ -293,7 +359,7 @@ function telaCambio(hex){
   const h=decodeURIComponent(location.hash.slice(1));if(h&&[...$("libro").options].some(o=>o.value===h))$("libro").value=h;
   pintarTipos();pintar();
 }).catch(()=>{$("hojas").innerHTML='<div id="msg">No se pudo cargar data.json del archivo.</div>';$("info").textContent="Error"});
-$("libro").onchange=()=>{pintarTipos();pintar()};$("cub").onchange=pintar;$("imp").onclick=imprimir;$("tela").oninput=()=>telaCambio($("tela").value);$("telaR").onclick=()=>{telaCambio(null);$("tela").value=telaDe($("libro").value)};
+$("libro").onchange=()=>{pintarTipos();pintar()};$("cub").onchange=pintar;$("imp").onclick=descargar;$("imp2").onclick=imprimir;$("tela").oninput=()=>telaCambio($("tela").value);$("telaR").onclick=()=>{telaCambio(null);$("tela").value=telaDe($("libro").value)};
 </script>
 </body>
 </html>
