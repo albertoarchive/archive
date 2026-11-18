@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cuadernillos · archivo personal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+@page{size:297mm 210mm;margin:0}
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--f-ui:"Geist",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif;--f-mono:"Geist Mono",ui-monospace,Menlo,monospace}
+html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{font-family:var(--f-ui);font-variant-numeric:tabular-nums;background:#e6e5e1;color:#141414;
+  --bg:#f4f3ef;--ink:#141414;--mute:#8a8984;--rule:#141414;--line:#cfcec9;--red:#d8341f;--fold:#d6d5d0;--hole:#c9c8c3}
+body.negro{--bg:#000;--ink:#ecebe7;--mute:#86857f;--rule:#ecebe7;--line:#3a3a37;--red:#e2412e;--fold:#2a2a28;--hole:#2e2e2c}
+
+/* ---------- panel (no se imprime) ---------- */
+.ui{position:sticky;top:0;z-index:5;background:#fff;border-bottom:1px solid #141414;padding:12px 16px;display:flex;flex-wrap:wrap;gap:14px 22px;align-items:flex-end;font-size:13px}
+.ui h1{font-size:15px;font-weight:500;letter-spacing:-.02em;margin-right:8px;align-self:center}
+.ui label{display:flex;flex-direction:column;gap:4px;font-family:var(--f-mono);font-size:10.5px;letter-spacing:.04em;color:#6b6a66;text-transform:uppercase}
+.ui select,.ui button{font:inherit;font-family:var(--f-ui);font-size:13px;color:#141414;background:#fff;border:1px solid #141414;border-radius:7px;padding:7px 10px;text-transform:none;letter-spacing:0}
+.ui button{cursor:pointer}.ui button.pri{background:#141414;color:#fff}
+.ui .chk{flex-direction:row;align-items:center;gap:6px;font-family:var(--f-ui);font-size:13px;text-transform:none;letter-spacing:0;color:#141414}
+.ui .tipos{display:flex;flex-wrap:wrap;gap:4px 12px;max-width:520px}
+.ui .info{font-family:var(--f-mono);font-size:11px;color:#6b6a66;margin-left:auto;align-self:center;text-align:right}
+.ayuda{max-width:760px;margin:18px auto 0;padding:0 16px;font-size:12.5px;line-height:1.5;color:#4a4945}
+.ayuda b{font-weight:500;color:#141414}
+#hojas{display:flex;flex-direction:column;align-items:center;gap:18px;padding:18px 0 60px}
+#msg{text-align:center;padding:60px 16px;font-family:var(--f-mono);font-size:12px;color:#6b6a66}
+
+/* ---------- hoja: A4 apaisado = A5 doblado ---------- */
+.hoja{width:297mm;height:210mm;display:flex;position:relative;background:var(--bg);color:var(--ink);flex:none;break-after:page;overflow:hidden}
+.pg{width:148.5mm;height:210mm;position:relative;overflow:hidden;padding:9mm 10mm 10mm}
+.izq{padding-right:16mm}.der{padding-left:16mm}
+.pliegue{position:absolute;left:148.5mm;top:0;bottom:0;border-left:.2mm dashed var(--fold)}
+.hole{position:absolute;width:4mm;height:4mm;border-radius:50%;border:.2mm solid var(--hole)}
+.hole.r{right:6mm}.hole.l{left:6mm}.h1{top:45mm}.h2{bottom:45mm}
+.run{display:grid;grid-template-columns:9mm 1fr 1fr auto;border-top:.3mm solid var(--rule);padding-top:1.4mm;font-family:var(--f-mono);font-size:6.8pt;text-transform:uppercase;letter-spacing:.08em}
+.run .r{text-align:right}
+.portadilla{display:flex;flex-direction:column}
+.regn{color:var(--red);font-size:92pt;letter-spacing:-.05em;line-height:.8;margin:14mm 0 0 -1.5mm}
+.portadilla h1{font-weight:400;font-size:25pt;letter-spacing:-.03em;line-height:.98;margin-top:8mm;max-width:110mm}
+.tags{margin-top:auto;display:flex;flex-wrap:wrap;gap:0 4mm;border-top:.3mm solid var(--rule);padding-top:1.4mm;font-family:var(--f-mono);font-size:6.8pt;text-transform:uppercase;letter-spacing:.08em}
+.colofon{position:absolute;left:10mm;right:16mm;bottom:10mm;display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:6.4pt;letter-spacing:.08em;color:var(--mute);border-top:.2mm solid var(--line);padding-top:1.4mm;text-transform:uppercase}
+.fig{position:absolute;left:10mm;right:16mm;top:17mm;bottom:20mm;display:flex;align-items:center;justify-content:center}
+.fig img{display:block;object-fit:contain}
+.esc{position:absolute;left:10mm;bottom:10mm;display:flex;align-items:center;gap:2.5mm;font-family:var(--f-mono);font-size:6.4pt;letter-spacing:.08em;color:var(--mute);text-transform:uppercase}
+.regla{height:1.6mm;border:.2mm solid var(--mute);border-top:0}
+h2{font-weight:400;font-size:21pt;letter-spacing:-.03em;line-height:1;margin:7mm 0 4mm}
+.pie{font-size:8.2pt;line-height:1.35;max-width:100mm;margin-bottom:5mm}
+.ficha{width:100%;border-collapse:collapse;font-size:7.4pt;line-height:1.25}
+.ficha th,.ficha td{border-top:.2mm solid var(--rule);padding:1.3mm 0 1.6mm;text-align:left;vertical-align:top;font-weight:400}
+.ficha th{width:25mm;color:var(--mute);font-family:var(--f-mono);font-size:6.8pt;letter-spacing:.08em;text-transform:uppercase;padding-top:1.5mm}
+.ficha tr:last-child th,.ficha tr:last-child td{border-bottom:.2mm solid var(--rule)}
+.ficha tr:first-child td{color:var(--red)}
+.vac{color:var(--mute)}
+.rec{position:absolute;left:16mm;right:10mm;bottom:10mm;font-size:7.4pt;line-height:1.35}
+.rec .lbl{border-top:.3mm solid var(--rule);padding-top:1.4mm;margin-bottom:2mm;font-family:var(--f-mono);font-size:6.8pt;letter-spacing:.08em;text-transform:uppercase}
+.rec p{margin-bottom:1.5mm}
+/* cubierta: cartón gris con etiqueta y tela en la bisagra */
+.carton{background:#e9e8e4}
+.carton .pg.izq{display:none}
+.carton .pg.der{background:#8f8d87 radial-gradient(#9a9892 .35mm,transparent .4mm) 0 0/1.6mm 1.6mm;padding:0;margin-left:74mm;box-shadow:0 2mm 6mm rgba(0,0,0,.25)}
+.tela{position:absolute;left:0;top:0;bottom:0;width:17mm;background:#1d1d1c;box-shadow:inset -.6mm 0 0 rgba(255,255,255,.07)}
+.tornillo{position:absolute;left:6.3mm;width:4.4mm;height:4.4mm;border-radius:50%;background:radial-gradient(circle at 40% 35%,#d8d6d0,#8b8984 70%)}
+.tornillo.t1{top:45mm}.tornillo.t2{bottom:45mm}
+.etiqueta{position:absolute;left:33mm;right:14mm;top:24mm;height:52mm;background:#f6f5f1;color:#141414;padding:3.5mm 4mm;display:flex;flex-direction:column;box-shadow:0 .3mm .6mm rgba(0,0,0,.25)}
+.et-run,.et-pie{display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:6.4pt;letter-spacing:.08em;text-transform:uppercase;border-top:.3mm solid #141414;padding-top:1.2mm}
+.et-t{font-size:30pt;letter-spacing:-.045em;line-height:.85;margin-top:4mm}
+.et-pie{margin-top:auto;border-top-width:.2mm}
+.trasera{background:#e9e8e4}
+
+@media screen{
+  .hoja{zoom:.5;box-shadow:0 2px 14px rgba(0,0,0,.22)}
+  .hoja:not(.carton):not(.trasera){outline:1px solid rgba(0,0,0,.08)}
+}
+@media print{
+  body{background:none}.ui,.ayuda,#msg{display:none!important}
+  #hojas{display:block;padding:0;gap:0}
+  .hoja{zoom:1;box-shadow:none;outline:0}
+}
+</style>
+</head>
+<body>
+<div class="ui">
+  <h1>Cuadernillos</h1>
+  <label>Libro<select id="libro"></select></label>
+  <label>Fondo<select id="fondo"><option value="blanco">Blanco</option><option value="negro">Negro</option></select></label>
+  <label class="chk"><input type="checkbox" id="cub" checked> Cubierta</label>
+  <label>Tipos<div class="tipos" id="tipos"></div></label>
+  <button class="pri" id="imp">Imprimir / guardar PDF</button>
+  <div class="info" id="info">Cargando…</div>
+</div>
+<div class="ayuda">
+  <b>Para sacar el PDF:</b> «Imprimir / guardar PDF» → destino <b>Guardar como PDF</b> · papel <b>A4 apaisado</b> · márgenes <b>Ninguno</b> · activa <b>Gráficos de fondo</b>.
+  Si imprimes en papel a doble cara, elige <b>voltear por el borde corto</b>: cada pieza es una hoja con [4 | 1] por fuera y [2 | 3] por dentro; se dobla por la línea discontinua y los dos taladros quedan junto al pliegue para el tornillo.
+</div>
+<div id="hojas"><div id="msg">Cargando el archivo…</div></div>
+
+<script>
+const BASE="https://raw.githubusercontent.com/albertoarchive/archive/datos/";
+const FAM=[["Publicaciones",["Libro","Revista","Fanzine","Marcapáginas"]],["Impresos",["Postal","Tarjeta de visita","Folleto","Cartel","Foto","Orla"]],["Accesos",["Entrada","Billete","Pulsera","Pasaporte","Carnet","Lanyard"]],["Coleccionables",["Cromo","Pegatina","Goma de borrar"]],["Discos",["CD","Vinilo","Casete"]],["Ropa",["Camiseta","Sudadera","Bufanda","Gorra","Zapato","Ropa"]],["Juguetes",["Muñeco","Peluche","Nave","Lego"]],["Objetos",["Imán","Llavero","USB","Metacrilato","Chapa","Confeti","Miniatura","Premio"]]];
+const ROM=['I','II','III','IV','V','VI','VII','VIII'];
+const famIdx=t=>{const i=FAM.findIndex(f=>f[1].includes(t));return i<0?FAM.length-1:i};
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const $=id=>document.getElementById(id);
+const BW=118,BH=150;
+let D=null,PZ=[];
+
+function escala(p){
+  const w=+p.ancho||100,h=+p.alto||100;
+  if(w<=BW&&h<=BH)return{s:1,lab:"1:1",w,h};
+  for(const s of [2,3,4,5,6,8,10])if(w/s<=BW&&h/s<=BH)return{s,lab:"1:"+s,w:w/s,h:h/s};
+  const s=Math.max(w/BW,h/BH);return{s,lab:"1:"+Math.round(s),w:w/s,h:h/s};
+}
+const imgSrc=id=>BASE+"a/"+id+"."+((D.ext||{})[id]||"webp");
+const run=(p,pag)=>{const i=famIdx(p.tipo);return `<div class="run"><span>${ROM[i]}</span><span>${esc(FAM[i][0])}</span><span>${esc(p.tipo)}</span><span class="r">${esc(pag)}</span></div>`};
+const holes=s=>`<i class="hole ${s} h1"></i><i class="hole ${s} h2"></i>`;
+const HOY=new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit",year:"numeric"}).replace(/\//g,".");
+const n3=n=>String(n).padStart(3,"0");
+
+function exterior(p){
+  const tags=(p.ambitos||[]).map(a=>`<span>${esc(a)}</span>`).join("");
+  return `<div class="hoja"><section class="pg izq">${holes("r")}<div class="colofon"><span>archivo.personal</span><span>Registro ${n3(p.n)}</span><span>Impreso el ${HOY}</span></div></section>
+  <section class="pg der portadilla">${holes("l")}${run(p,"")}<div class="regn">${n3(p.n)}</div><h1>${esc(p.titulo)}</h1><div class="tags">${tags}</div></section><i class="pliegue"></i></div>`;
+}
+function interior(p){
+  const e=escala(p);
+  const lugar=[p.lugar,p.anio].filter(Boolean).join(" · ");
+  const proc=[p.procedencia,p.procedencia_de].filter(Boolean).join(" · ");
+  const med=(p.ancho&&p.alto?`${p.ancho} × ${p.alto} mm`:"")+(p.medida_estimada?" (estimada)":"");
+  const son=p.sonido?("Sí"+(p.sonido_fin?` · ${Math.round(p.sonido_fin-(p.sonido_ini||0))} s`:"")):"";
+  const rows=[["N.º",n3(p.n)],["Tipo",p.tipo],["Lugar y año",lugar],["Procedencia",proc],["Anclas",(p.anclas||[]).join(", ")],["Ámbitos",(p.ambitos||[]).join(", ")],["Medidas",med],["Escala",e.lab],["Sonido",son]];
+  const tabla=rows.map(([k,v])=>`<tr><th>${k}</th><td>${v?esc(v):'<span class="vac">—</span>'}</td></tr>`).join("");
+  const mt=p.memoria_t&&typeof p.memoria_t==="object"?Object.values(p.memoria_t).filter(m=>m&&m.t):[];
+  const rec=mt.map(m=>`<p>${esc(m.t)}</p>`).join("");
+  return `<div class="hoja"><section class="pg izq">${holes("r")}${run(p,"Anverso")}
+    <div class="fig"><img src="${imgSrc(p.img[0])}" alt="" style="width:${e.w.toFixed(1)}mm;height:${e.h.toFixed(1)}mm"></div>
+    <div class="esc"><span>Escala ${e.lab}</span><span class="regla" style="width:${(50/e.s).toFixed(2)}mm"></span><span>5 cm</span></div></section>
+  <section class="pg der">${holes("l")}${run(p,n3(p.n))}<h2>${esc(p.titulo)}</h2>${p.pie?`<p class="pie">${esc(p.pie)}</p>`:""}
+    <table class="ficha">${tabla}</table><div class="rec"><div class="lbl">Lo que recuerdas</div>${rec||'<p class="vac">Todavía sin responder.</p>'}</div></section><i class="pliegue"></i></div>`;
+}
+function cubierta(fi,tipos){
+  const f=FAM[fi];
+  return `<div class="hoja carton"><section class="pg izq"></section><section class="pg der"><i class="tela"></i>
+    <div class="etiqueta"><div class="et-run"><span>${ROM[fi]}</span><span>archivo.personal</span></div><div class="et-t">${esc(f[0].toLowerCase())}</div>
+    <div class="et-pie"><span>${esc(tipos.slice(0,4).join(", ").toLowerCase())}</span><span>abierto desde 2026</span></div></div>
+    <i class="tornillo t1"></i><i class="tornillo t2"></i></section></div><div class="hoja trasera"></div>`;
+}
+
+/* ---------- selección ---------- */
+function seleccion(){
+  const libro=$("libro").value;
+  const off=new Set([...document.querySelectorAll("#tipos input:not(:checked)")].map(i=>i.value));
+  return PZ.filter(p=>(libro==="todos"||FAM[famIdx(p.tipo)][0]===libro)&&!off.has(p.tipo))
+    .sort((a,b)=>famIdx(a.tipo)-famIdx(b.tipo)||FAM[famIdx(a.tipo)][1].indexOf(a.tipo)-FAM[famIdx(b.tipo)][1].indexOf(b.tipo)||a.n-b.n);
+}
+function pintarTipos(){
+  const libro=$("libro").value;
+  const usados=new Map();PZ.forEach(p=>usados.set(p.tipo,(usados.get(p.tipo)||0)+1));
+  const lista=FAM.filter(f=>libro==="todos"||f[0]===libro).flatMap(f=>f[1]).filter(t=>usados.has(t));
+  $("tipos").innerHTML=lista.map(t=>`<label class="chk"><input type="checkbox" value="${esc(t)}" checked> ${esc(t)} <span style="color:#8a8984">${usados.get(t)}</span></label>`).join("");
+  $("tipos").querySelectorAll("input").forEach(i=>i.onchange=pintar);
+}
+function pintar(){
+  document.body.classList.toggle("negro",$("fondo").value==="negro");
+  const sel=seleccion();
+  if(!sel.length){$("hojas").innerHTML='<div id="msg">No hay piezas con esa selección.</div>';$("info").textContent="0 piezas";return}
+  let html="",last=-1,hojas=0;
+  for(const p of sel){
+    const fi=famIdx(p.tipo);
+    if($("cub").checked&&fi!==last){html+=cubierta(fi,FAM[fi][1].filter(t=>sel.some(x=>x.tipo===t)));hojas+=2;}
+    last=fi;html+=exterior(p)+interior(p);hojas+=2;
+  }
+  $("hojas").innerHTML=html;
+  $("info").innerHTML=`${sel.length} piezas<br>${hojas} caras · ${hojas/2} hojas`;
+  history.replaceState(null,"","#"+encodeURIComponent($("libro").value));
+}
+async function imprimir(){
+  const b=$("imp");b.disabled=true;
+  const imgs=[...document.querySelectorAll("#hojas img")];let k=0;
+  await Promise.all(imgs.map(i=>(i.complete?Promise.resolve():new Promise(r=>{i.onload=i.onerror=r})).then(()=>{b.textContent=`Cargando imágenes ${++k}/${imgs.length}`})));
+  b.disabled=false;b.textContent="Imprimir / guardar PDF";window.print();
+}
+
+fetch(BASE+"data.json?t="+Date.now(),{cache:"no-store"}).then(r=>{if(!r.ok)throw 0;return r.json()}).then(d=>{
+  D=d;PZ=(d.piezas||[]).filter(p=>p.img&&p.img[0]);
+  const cnt={};PZ.forEach(p=>{const f=FAM[famIdx(p.tipo)][0];cnt[f]=(cnt[f]||0)+1});
+  $("libro").innerHTML=`<option value="todos">Todos los libros (${PZ.length})</option>`+FAM.map((f,i)=>`<option value="${f[0]}">${ROM[i]} · ${f[0]} (${cnt[f[0]]||0})</option>`).join("");
+  const h=decodeURIComponent(location.hash.slice(1));if(h&&[...$("libro").options].some(o=>o.value===h))$("libro").value=h;
+  pintarTipos();pintar();
+}).catch(()=>{$("hojas").innerHTML='<div id="msg">No se pudo cargar data.json del archivo.</div>';$("info").textContent="Error"});
+$("libro").onchange=()=>{pintarTipos();pintar()};$("fondo").onchange=pintar;$("cub").onchange=pintar;$("imp").onclick=imprimir;
+</script>
+</body>
+</html>
