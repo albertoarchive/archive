@@ -197,6 +197,11 @@ body.moviendo .lz-in{will-change:transform}
 .palette{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .palette button{width:22px;height:22px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15);position:relative}
 .palette button:hover{transform:scale(1.15)}
+.palette button.palEd{width:auto;height:auto;border-radius:0;box-shadow:none;background:none;color:var(--muted);font-size:11px;padding:0 4px}.palette button.palEd:hover{transform:none;color:var(--fg)}
+.paled{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.paled span{display:flex;align-items:center;gap:2px}
+.paled input[type=color]{width:26px;height:26px;border:0;padding:0;border-radius:50%;background:none;cursor:pointer}
+.paled input[type=color]::-webkit-color-swatch-wrapper{padding:0}.paled input[type=color]::-webkit-color-swatch{border:0;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
+.paled button,.paled-b button{font-size:11px;color:var(--muted);padding:2px 4px}.paled button:hover,.paled-b button:hover{color:var(--fg)}.paled-b{display:flex;gap:10px;margin-top:6px}
 .palmenu{position:fixed;z-index:70;background:var(--bg);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.18);padding:6px;display:flex;flex-direction:column;min-width:210px}
 .palmenu button{text-align:left;padding:7px 10px;border-radius:6px;font-size:14px}
 .palmenu button:hover{background:var(--chip)}
@@ -833,6 +838,18 @@ function norm(d){return {...d,lugar:normLugar(d.lugar),ambitos:AMB(d),ambito:AMB
 /* ---------- Color dominante de cada pieza ---------- */
 const COLORS=["Rojo","Naranja","Marrón","Amarillo","Verde","Azul","Violeta","Rosa","Blanco","Gris","Negro"];
 const COL=new Map(); let colorsReady=false;
+/* Colores de una pieza: los que se hayan editado a mano (d.colores) o, si no, los que salen de la imagen */
+const PALX=d=>Array.isArray(d.colores)&&d.colores.length?d.colores.map(h=>({hex:h,p:null})):((COL.get(d.id)||{}).pal||[]);
+function palEditor(d){
+  const dd=$("#palRow").parentElement;let L=PALX(d).map(c=>c.hex.toLowerCase());
+  const guardar=v=>db.doc("piezas/"+d.id).update({colores:v,editado:new Date().toISOString()}).then(()=>drawFicha());
+  const draw=()=>{dd.innerHTML=`<div class="paled">${L.map((h,i)=>`<span><input type="color" value="${h}" data-i="${i}" aria-label="Color ${i+1}"><button type="button" data-x="${i}" aria-label="Quitar">×</button></span>`).join("")}${L.length<8?`<button type="button" id="pe-add" class="mono">+ añadir</button>`:""}</div><div class="paled-b mono"><button type="button" id="pe-ok">Guardar</button><button type="button" id="pe-auto">Automático</button><button type="button" id="pe-no">Cancelar</button></div>`;
+    dd.querySelectorAll("input[type=color]").forEach(i=>i.oninput=()=>{L[+i.dataset.i]=i.value.toLowerCase();});
+    dd.querySelectorAll("[data-x]").forEach(b=>b.onclick=()=>{L.splice(+b.dataset.x,1);draw();});
+    if($("#pe-add"))$("#pe-add").onclick=()=>{L.push("#808080");draw();};
+    $("#pe-ok").onclick=()=>guardar(L.length?L:null);$("#pe-auto").onclick=()=>guardar(null);$("#pe-no").onclick=()=>drawFicha();};
+  draw();
+}
 function rgb2hsl(r,g,b){r/=255;g/=255;b/=255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2;let h=0,s=0;
   if(mx!==mn){const d=mx-mn;s=l>.5?d/(2-mx-mn):d/(mx+mn);h=mx===r?(g-b)/d+(g<b?6:0):mx===g?(b-r)/d+2:(r-g)/d+4;h*=60;}return [h,s,l];}
 function nameOf(h,s,l){
@@ -1271,7 +1288,7 @@ function drawFicha(){
   <dt>${AMB(d).length>1?"Ámbitos":"Ámbito"}</dt><dd class="tags">${AMB(d).map(a=>`<button class="tag${a==="Sin ámbito"?" warn":""}" data-f="ambito" data-k="${esc(a)}" title="${esc(AMB_DEF[a]||"Falta elegir un ámbito: pulsa Editar")}">#${esc(a)}</button>`).join(" ")}</dd>
   ${(()=>{const an=ANC(d).filter(a=>a!=="Sin ancla"),L=normLugar(d.lugar);return an.length===1&&L&&an[0]===L?`<dt>Ancla y lugar</dt><dd><button data-f="ancla" data-k="${esc(L)}">${esc(L)}</button>${PAIS[L]&&PAIS[L]!==L?`<span class="muted"> · ${esc(PAIS[L])}</span>`:""}</dd>`:"";})()}
   <dt ${(()=>{const an=ANC(d).filter(a=>a!=="Sin ancla");return an.length===1&&normLugar(d.lugar)&&an[0]===normLugar(d.lugar)?"hidden":"";})()}>${ANC(d).length>1?"Anclas":"Ancla"}</dt><dd ${(()=>{const an=ANC(d).filter(a=>a!=="Sin ancla");return an.length===1&&normLugar(d.lugar)&&an[0]===normLugar(d.lugar)?"hidden":"";})()}>${ANC(d).filter(a=>a!=="Sin ancla").map(a=>`<button data-f="ancla" data-k="${esc(a)}">${esc(a)}</button>`).join(", ")||'<span class="muted">Sin ancla</span>'}</dd>
-  ${COL.get(d.id)?`<dt>Colores</dt><dd><div class="palette">${COL.get(d.id).pal.map(c=>`<button type="button" data-hex="${c.hex}" style="background:${c.hex}" title="${c.hex.toUpperCase()} · ${Math.round(c.p*100)} %" aria-label="Color ${c.hex}, ${Math.round(c.p*100)} por ciento"></button>`).join("")}</div></dd>`:""}
+  ${(()=>{const pal=PALX(d),ed=canEdit&&db;if(!pal.length&&!ed)return "";return `<dt>Colores</dt><dd><div class="palette" id="palRow">${pal.map(c=>`<button type="button" data-hex="${c.hex}" style="background:${c.hex}" title="${c.hex.toUpperCase()}${c.p!=null?" · "+Math.round(c.p*100)+" %":""}" aria-label="Color ${c.hex}"></button>`).join("")}${ed?`<button type="button" class="palEd mono" id="palEd">Editar</button>`:""}</div></dd>`;})()}
   <dt>Medida</dt><dd class="mono">${d.medida_estimada?"≈ ":""}${MW(d)} × ${H(d)} mm${d.medida_estimada?' <span class="muted">(estimada)</span>':""}</dd>
   <dt>Año</dt><dd class="mono">${d.anio||"Sin fechar"}</dd>
   ${(()=>{const an=ANC(d).filter(a=>a!=="Sin ancla"),L=normLugar(d.lugar);return an.length===1&&L&&an[0]===L?"":`<dt>Lugar</dt><dd>${L?`<button data-f="lugar" data-k="${esc(L)}">${esc(L)}</button>${PAIS[L]&&PAIS[L]!==L?`<span class="muted"> · ${esc(PAIS[L])}</span>`:""}`:'<span class="muted">Sin lugar</span>'}</dd>`;})()}
@@ -1337,7 +1354,8 @@ function wireFicha(d,two){
   document.querySelectorAll("#ficha .sides button").forEach(b=>b.onclick=()=>{const want=+b.dataset.s;const curSide=((Math.round(rot/180)%2)+2)%2;if(want!==curSide)setRot(rot+180);});
   document.querySelectorAll("#fscale button").forEach(b=>b.onclick=()=>{fScale=b.dataset.k;document.querySelectorAll("#fscale button").forEach(x=>x.setAttribute("aria-pressed",x===b));sizeCard();});
   document.querySelectorAll("#fmeta button[data-f]").forEach(b=>b.onclick=()=>{["ambito","ancla","tipo","familia","anio","lugar","proc","sent","nivel"].forEach(k=>S[k].clear());S.color="";S.q="";$("#q").value="";S[b.dataset.f].add(b.dataset.k);closeFicha();setView("galeria");});
-  document.querySelectorAll("#fmeta .palette button").forEach(b=>b.onclick=e=>palMenu(b.dataset.hex,b));
+  document.querySelectorAll("#fmeta .palette button[data-hex]").forEach(b=>b.onclick=e=>palMenu(b.dataset.hex,b));
+  if($("#palEd"))$("#palEd").onclick=()=>palEditor(cur());
   const c=$("#card"); let x0=null,r0=0,moved=false;
   c.onpointerdown=e=>{x0=e.clientX;r0=rot;moved=false;c.setPointerCapture(e.pointerId);c.classList.add("dragging");};
   c.onpointermove=e=>{if(x0===null)return;const dx=e.clientX-x0;if(Math.abs(dx)>3)moved=true;let r=r0+dx*.6;if(!two)r=r0+Math.max(-35,Math.min(35,dx*.3));setRot(r,false);};

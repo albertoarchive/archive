@@ -55,6 +55,7 @@ h2{font-weight:400;font-size:21pt;letter-spacing:-.03em;line-height:1;margin:7mm
 .ficha tr:last-child th,.ficha tr:last-child td{border-bottom:.2mm solid var(--rule)}
 .ficha tr:first-child td{color:var(--red)}
 .vac{color:var(--mute)}
+.cols i{display:inline-block;width:3.2mm;height:3.2mm;border-radius:50%;margin-right:1.2mm;vertical-align:middle;box-shadow:inset 0 0 0 .15mm rgba(128,128,128,.55)}
 .rec{position:absolute;left:16mm;right:10mm;bottom:10mm;font-size:7.4pt;line-height:1.35}
 .rec .lbl{border-top:.3mm solid var(--rule);padding-top:1.4mm;margin-bottom:2mm;font-family:var(--f-mono);font-size:6.8pt;letter-spacing:.08em;text-transform:uppercase}
 .rec p{margin-bottom:1.5mm}
@@ -88,6 +89,7 @@ h2{font-weight:400;font-size:21pt;letter-spacing:-.03em;line-height:1;margin:7mm
   <label>Libro<select id="libro"></select></label>
   <label>Fondo<select id="fondo"><option value="blanco">Blanco</option><option value="negro">Negro</option></select></label>
   <label class="chk"><input type="checkbox" id="cub" checked> Cubierta</label>
+  <label id="telaL" hidden>Tela de este libro<span style="display:flex;gap:6px;align-items:center"><input type="color" id="tela" style="width:34px;height:30px;padding:0;border:1px solid #141414;border-radius:7px;background:none"><button type="button" id="telaR">Restablecer</button></span></label>
   <label>Tipos<div class="tipos" id="tipos"></div></label>
   <button class="pri" id="imp">Imprimir / guardar PDF</button>
   <div class="info" id="info">Cargando…</div>
@@ -107,6 +109,39 @@ const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",
 const $=id=>document.getElementById(id);
 const BW=118,BH=150;
 let D=null,PZ=[];
+/* ---- análisis de color: el mismo que usa la web ---- */
+function rgb2hsl(r,g,b){r/=255;g/=255;b/=255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2;let h=0,s=0;
+  if(mx!==mn){const d=mx-mn;s=l>.5?d/(2-mx-mn):d/(mx+mn);h=mx===r?(g-b)/d+(g<b?6:0):mx===g?(b-r)/d+2:(r-g)/d+4;h*=60;}return [h,s,l];}
+function nameOf(h,s,l){
+  if(s<.16||l<.1||l>.94){return l>.78?"Blanco":l<.24?"Negro":"Gris";}
+  if(h>=15&&h<45&&l<.38)return "Marrón";
+  if(h<15||h>=345)return "Rojo"; if(h<42)return "Naranja"; if(h<70)return "Amarillo"; if(h<165)return "Verde";
+  if(h<255)return "Azul"; if(h<290)return "Violeta"; return "Rosa";}
+const hex2rgb=h=>{h=h.replace("#","");if(h.length===3)h=h.split("").map(c=>c+c).join("");const n=parseInt(h,16);return [n>>16&255,n>>8&255,n&255];};
+const rgb2hex=(r,g,b)=>"#"+[r,g,b].map(v=>Math.round(v).toString(16).padStart(2,"0")).join("");
+function rgb2lab(r,g,b){const f=c=>{c/=255;return c>.04045?Math.pow((c+.055)/1.055,2.4):c/12.92;};r=f(r);g=f(g);b=f(b);
+  let x=(r*.4124+g*.3576+b*.1805)/.95047,y=r*.2126+g*.7152+b*.0722,z=(r*.0193+g*.1192+b*.9505)/1.08883;
+  const t=v=>v>.008856?Math.cbrt(v):7.787*v+16/116;x=t(x);y=t(y);z=t(z);return [116*y-16,500*(x-y),200*(y-z)];}
+const dE=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);
+function analyse(img){
+  const N=64,c=document.createElement("canvas"),k=Math.min(1,N/Math.max(img.naturalWidth,img.naturalHeight));
+  c.width=Math.max(1,Math.round(img.naturalWidth*k));c.height=Math.max(1,Math.round(img.naturalHeight*k));
+  const x=c.getContext("2d",{willReadFrequently:true});x.drawImage(img,0,0,c.width,c.height);
+  const px=x.getImageData(0,0,c.width,c.height).data, pts=[];
+  for(let i=0;i<px.length;i+=4){if(px[i+3]<128)continue;pts.push([px[i],px[i+1],px[i+2],rgb2lab(px[i],px[i+1],px[i+2])]);}
+  if(!pts.length)return null;
+  // histograma fino (4 bits por canal); cada celda conserva su color medio, que es nítido
+  const hist=new Map();pts.forEach(p=>{const key=(p[0]>>4)+","+(p[1]>>4)+","+(p[2]>>4);const h=hist.get(key)||{n:0,r:0,g:0,b:0};h.n++;h.r+=p[0];h.g+=p[1];h.b+=p[2];hist.set(key,h);});
+  const bins=[...hist.values()].sort((a,b)=>b.n-a.n).map(h=>{const r=h.r/h.n,g=h.g/h.n,b=h.b/h.n;return {hex:rgb2hex(r,g,b),lab:rgb2lab(r,g,b),p:h.n/pts.length};});
+  // fusión voraz: cada celda se suma al color de la paleta más cercano, o abre uno nuevo
+  const out=[];bins.forEach(c=>{let o=null,bd=16;out.forEach(x=>{const d=dE(x.lab,c.lab);if(d<bd){bd=d;o=x;}});if(o)o.p+=c.p;else out.push({...c});});
+  pal=out.filter(c=>c.p>=.03).sort((a,b)=>b.p-a.p).slice(0,6);
+  // color principal: el cromático con más peso si hay suficiente color; si no, el neutro dominante
+  const info=pal.map(c=>{const [r,g,b]=hex2rgb(c.hex),[h,s2,l]=rgb2hsl(r,g,b);return {...c,h,s:s2,l,name:nameOf(h,s2,l)};});
+  const chrom=info.filter(c=>!["Blanco","Gris","Negro"].includes(c.name)),chromP=chrom.reduce((a,c)=>a+c.p,0);
+  const main=(chromP>.25?chrom.sort((a,b)=>b.p*(1+b.s)-a.p*(1+a.s))[0]:info[0])||info[0];
+  return {pal:info,name:main.name,hex:main.hex,h:main.h,s:main.s,l:main.l};}
+
 
 function escala(p){
   const w=+p.ancho||100,h=+p.alto||100;
@@ -120,6 +155,7 @@ const holes=s=>`<i class="hole ${s} h1"></i><i class="hole ${s} h2"></i>`;
 const HOY=new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit",year:"numeric"}).replace(/\//g,".");
 const n3=n=>String(n).padStart(3,"0");
 
+const colsHTML=l=>Array.isArray(l)?l.map(h=>`<i style="background:${esc(h)}"></i>`).join(""):"";
 function exterior(p){
   const tags=(p.ambitos||[]).map(a=>`<span>${esc(a)}</span>`).join("");
   return `<div class="hoja"><section class="pg izq">${holes("r")}<div class="colofon"><span>archivo.personal</span><span>Registro ${n3(p.n)}</span><span>Impreso el ${HOY}</span></div></section>
@@ -131,8 +167,8 @@ function interior(p){
   const proc=[p.procedencia,p.procedencia_de].filter(Boolean).join(" · ");
   const med=(p.ancho&&p.alto?`${p.ancho} × ${p.alto} mm`:"")+(p.medida_estimada?" (estimada)":"");
   const son=p.sonido?("Sí"+(p.sonido_fin?` · ${Math.round(p.sonido_fin-(p.sonido_ini||0))} s`:"")):"";
-  const rows=[["N.º",n3(p.n)],["Tipo",p.tipo],["Lugar y año",lugar],["Procedencia",proc],["Anclas",(p.anclas||[]).join(", ")],["Ámbitos",(p.ambitos||[]).join(", ")],["Medidas",med],["Escala",e.lab],["Sonido",son]];
-  const tabla=rows.map(([k,v])=>`<tr><th>${k}</th><td>${v?esc(v):'<span class="vac">—</span>'}</td></tr>`).join("");
+  const rows=[["N.º",n3(p.n)],["Tipo",p.tipo],["Lugar y año",lugar],["Procedencia",proc],["Anclas",(p.anclas||[]).join(", ")],["Ámbitos",(p.ambitos||[]).join(", ")],["Colores",null],["Medidas",med],["Escala",e.lab],["Sonido",son]];
+  const tabla=rows.map(([k,v])=>k==="Colores"?`<tr><th>${k}</th><td class="cols" data-id="${esc(p.id)}">${colsHTML(p.colores)||'<span class="vac">—</span>'}</td></tr>`:`<tr><th>${k}</th><td>${v?esc(v):'<span class="vac">—</span>'}</td></tr>`).join("");
   const mt=p.memoria_t&&typeof p.memoria_t==="object"?Object.values(p.memoria_t).filter(m=>m&&m.t):[];
   const rec=mt.map(m=>`<p>${esc(m.t)}</p>`).join("");
   return `<div class="hoja"><section class="pg izq">${holes("r")}${run(p,"Anverso")}
@@ -141,9 +177,10 @@ function interior(p){
   <section class="pg der">${holes("l")}${run(p,n3(p.n))}<h2>${esc(p.titulo)}</h2>${p.pie?`<p class="pie">${esc(p.pie)}</p>`:""}
     <table class="ficha">${tabla}</table><div class="rec"><div class="lbl">Lo que recuerdas</div>${rec||'<p class="vac">Todavía sin responder.</p>'}</div></section><i class="pliegue"></i></div>`;
 }
+const telaDe=f=>((D.libros||{})[f]||{}).tela||"#1d1d1c";
 function cubierta(fi,tipos){
   const f=FAM[fi];
-  return `<div class="hoja carton"><section class="pg izq"></section><section class="pg der"><i class="tela"></i>
+  return `<div class="hoja carton"><section class="pg izq"></section><section class="pg der"><i class="tela" style="background:${esc(telaDe(FAM[fi][0]))}"></i>
     <div class="etiqueta"><div class="et-run"><span>${ROM[fi]}</span><span>archivo.personal</span></div><div class="et-t">${esc(f[0].toLowerCase())}</div>
     <div class="et-pie"><span>${esc(tipos.slice(0,4).join(", ").toLowerCase())}</span><span>abierto desde 2026</span></div></div>
     <i class="tornillo t1"></i><i class="tornillo t2"></i></section></div><div class="hoja trasera"></div>`;
@@ -163,6 +200,19 @@ function pintarTipos(){
   $("tipos").innerHTML=lista.map(t=>`<label class="chk"><input type="checkbox" value="${esc(t)}" checked> ${esc(t)} <span style="color:#8a8984">${usados.get(t)}</span></label>`).join("");
   $("tipos").querySelectorAll("input").forEach(i=>i.onchange=pintar);
 }
+let PALP=Promise.resolve();
+function colores(){
+  const ids=[...new Set([...document.querySelectorAll('#hojas td.cols')].map(td=>td.dataset.id))];
+  const por=new Map(PZ.map(p=>[String(p.id),p]));
+  const th=new Set(D.thumbs||[]);
+  const uno=id=>new Promise(ok=>{const p=por.get(id);if(!p||(p.colores&&p.colores.length))return ok();
+    const im=new Image();im.crossOrigin="anonymous";
+    im.onload=()=>{try{const c=analyse(im);if(c)p.colores=c.pal.map(x=>x.hex);}catch(e){}
+      document.querySelectorAll('td.cols[data-id="'+CSS.escape(id)+'"]').forEach(td=>{td.innerHTML=colsHTML(p.colores)||'<span class="vac">—</span>'});ok()};
+    im.onerror=()=>ok();im.src=th.has(p.img[0])?BASE+"t/"+p.img[0]+".webp":imgSrc(p.img[0]);});
+  const cola=ids.slice();const w=async()=>{while(cola.length)await uno(cola.shift())};
+  PALP=Promise.all([w(),w(),w(),w()]);
+}
 function pintar(){
   document.body.classList.toggle("negro",$("fondo").value==="negro");
   const sel=seleccion();
@@ -176,14 +226,36 @@ function pintar(){
   $("hojas").innerHTML=html;
   $("info").innerHTML=`${sel.length} piezas<br>${hojas} caras · ${hojas/2} hojas`;
   history.replaceState(null,"","#"+encodeURIComponent($("libro").value));
+  colores();telaUI();
 }
 async function imprimir(){
-  const b=$("imp");b.disabled=true;
+  const b=$("imp");b.disabled=true;await PALP;
   const imgs=[...document.querySelectorAll("#hojas img")];let k=0;
   await Promise.all(imgs.map(i=>(i.complete?Promise.resolve():new Promise(r=>{i.onload=i.onerror=r})).then(()=>{b.textContent=`Cargando imágenes ${++k}/${imgs.length}`})));
   b.disabled=false;b.textContent="Imprimir / guardar PDF";window.print();
 }
 
+let TOKEN=null;try{TOKEN=localStorage.getItem("arch-token")}catch(e){}
+const API="https://api.github.com/repos/albertoarchive/archive";
+const b64=s=>{const u=new TextEncoder().encode(s);let b="";for(let i=0;i<u.length;i+=0x8000)b+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(b)};
+async function guardarTela(f,hex){
+  const H={Accept:"application/vnd.github+json",Authorization:"Bearer "+TOKEN};
+  for(let k=0;k<3;k++){
+    const m=await fetch(API+"/contents/data.json?ref=datos",{headers:H,cache:"no-store"});if(!m.ok)throw new Error("GitHub "+m.status);const sha=(await m.json()).sha;
+    const r=await fetch(API+"/contents/data.json?ref=datos",{headers:{...H,Accept:"application/vnd.github.raw+json"},cache:"no-store"});if(!r.ok)throw new Error("GitHub "+r.status);const data=await r.json();
+    data.libros=data.libros||{};if(hex){(data.libros[f]=data.libros[f]||{}).tela=hex}else if(data.libros[f]){delete data.libros[f].tela}
+    const put=await fetch(API+"/contents/data.json",{method:"PUT",headers:H,body:JSON.stringify({message:"Web: color de tela de "+f,content:b64(JSON.stringify(data)),sha,branch:"datos"})});
+    if(put.ok)return;if(put.status!==409&&put.status!==422)throw new Error("GitHub "+put.status);
+  }
+  throw new Error("conflicto al guardar");
+}
+function telaUI(){const f=$("libro").value,ok=!!TOKEN&&f!=="todos";$("telaL").hidden=!ok;if(ok)$("tela").value=telaDe(f);}
+let telaT=0;
+function telaCambio(hex){
+  const f=$("libro").value;D.libros=D.libros||{};(D.libros[f]=D.libros[f]||{}).tela=hex||undefined;
+  document.querySelectorAll(".tela").forEach(e=>e.style.background=telaDe(f));
+  clearTimeout(telaT);telaT=setTimeout(()=>{$("info").textContent="Guardando color…";guardarTela(f,hex).then(()=>{$("info").textContent="Color de tela guardado"}).catch(e=>{$("info").textContent="No se pudo guardar: "+e.message})},900);
+}
 fetch(BASE+"data.json?t="+Date.now(),{cache:"no-store"}).then(r=>{if(!r.ok)throw 0;return r.json()}).then(d=>{
   D=d;PZ=(d.piezas||[]).filter(p=>p.img&&p.img[0]);
   const ct={};PZ.forEach(p=>ct[p.tipo]=(ct[p.tipo]||0)+1);FAM.forEach(f=>f[1].sort((x,y)=>(ct[y]||0)-(ct[x]||0))); /* mismo orden que la web: de más a menos piezas */
@@ -192,7 +264,7 @@ fetch(BASE+"data.json?t="+Date.now(),{cache:"no-store"}).then(r=>{if(!r.ok)throw
   const h=decodeURIComponent(location.hash.slice(1));if(h&&[...$("libro").options].some(o=>o.value===h))$("libro").value=h;
   pintarTipos();pintar();
 }).catch(()=>{$("hojas").innerHTML='<div id="msg">No se pudo cargar data.json del archivo.</div>';$("info").textContent="Error"});
-$("libro").onchange=()=>{pintarTipos();pintar()};$("fondo").onchange=pintar;$("cub").onchange=pintar;$("imp").onclick=imprimir;
+$("libro").onchange=()=>{pintarTipos();pintar()};$("fondo").onchange=pintar;$("cub").onchange=pintar;$("imp").onclick=imprimir;$("tela").oninput=()=>telaCambio($("tela").value);$("telaR").onclick=()=>{telaCambio(null);$("tela").value=telaDe($("libro").value)};
 </script>
 </body>
 </html>
