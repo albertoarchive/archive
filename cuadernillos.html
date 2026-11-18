@@ -12,7 +12,7 @@
 :root{--f-ui:"Geist",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif;--f-mono:"Geist Mono",ui-monospace,Menlo,monospace}
 html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 body{font-family:var(--f-ui);font-variant-numeric:tabular-nums;background:#e6e5e1;color:#141414;
-  --bg:#f4f3ef;--ink:#141414;--mute:#8a8984;--rule:#141414;--line:#cfcec9;--red:#d8341f;--fold:#d6d5d0;--hole:#c9c8c3}
+  --bg:#fff;--ink:#141414;--mute:#8a8984;--rule:#141414;--line:#cfcec9;--red:#d8341f;--fold:#d6d5d0;--hole:#c9c8c3}
 body.negro{--bg:#000;--ink:#ecebe7;--mute:#86857f;--rule:#ecebe7;--line:#3a3a37;--red:#e2412e;--fold:#2a2a28;--hole:#2e2e2c}
 
 /* ---------- panel (no se imprime) ---------- */
@@ -77,6 +77,7 @@ h2{font-weight:400;font-size:21pt;letter-spacing:-.03em;line-height:1;margin:7mm
   .hoja:not(.carton):not(.trasera){outline:1px solid rgba(0,0,0,.08)}
 }
 @media print{
+  .hoja:not(.carton):not(.trasera){background:none!important}
   body{background:none}.ui,.ayuda,#msg{display:none!important}
   #hojas{display:block;padding:0;gap:0}
   .hoja{zoom:1;box-shadow:none;outline:0}
@@ -87,7 +88,6 @@ h2{font-weight:400;font-size:21pt;letter-spacing:-.03em;line-height:1;margin:7mm
 <div class="ui">
   <h1>Cuadernillos</h1>
   <label>Libro<select id="libro"></select></label>
-  <label>Fondo<select id="fondo"><option value="blanco">Blanco</option><option value="negro">Negro</option></select></label>
   <label class="chk"><input type="checkbox" id="cub" checked> Cubierta</label>
   <label id="telaL" hidden>Tela de este libro<span style="display:flex;gap:6px;align-items:center"><input type="color" id="tela" style="width:34px;height:30px;padding:0;border:1px solid #141414;border-radius:7px;background:none"><button type="button" id="telaR">Restablecer</button></span></label>
   <label>Tipos<div class="tipos" id="tipos"></div></label>
@@ -214,7 +214,6 @@ function colores(){
   PALP=Promise.all([w(),w(),w(),w()]);
 }
 function pintar(){
-  document.body.classList.toggle("negro",$("fondo").value==="negro");
   const sel=seleccion();
   if(!sel.length){$("hojas").innerHTML='<div id="msg">No hay piezas con esa selección.</div>';$("info").textContent="0 piezas";return}
   let html="",last=-1,hojas=0;
@@ -264,7 +263,7 @@ fetch(BASE+"data.json?t="+Date.now(),{cache:"no-store"}).then(r=>{if(!r.ok)throw
   const h=decodeURIComponent(location.hash.slice(1));if(h&&[...$("libro").options].some(o=>o.value===h))$("libro").value=h;
   pintarTipos();pintar();
 }).catch(()=>{$("hojas").innerHTML='<div id="msg">No se pudo cargar data.json del archivo.</div>';$("info").textContent="Error"});
-$("libro").onchange=()=>{pintarTipos();pintar()};$("fondo").onchange=pintar;$("cub").onchange=pintar;$("imp").onclick=imprimir;$("tela").oninput=()=>telaCambio($("tela").value);$("telaR").onclick=()=>{telaCambio(null);$("tela").value=telaDe($("libro").value)};
+$("libro").onchange=()=>{pintarTipos();pintar()};$("cub").onchange=pintar;$("imp").onclick=imprimir;$("tela").oninput=()=>telaCambio($("tela").value);$("telaR").onclick=()=>{telaCambio(null);$("tela").value=telaDe($("libro").value)};
 </script>
 </body>
 </html>
