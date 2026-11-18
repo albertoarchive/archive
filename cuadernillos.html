@@ -167,7 +167,7 @@ const n3=n=>String(n).padStart(3,"0");
 const colsHTML=l=>Array.isArray(l)?l.map(h=>`<i style="background:${esc(h)}"></i>`).join(""):"";
 function exterior(p){
   const tags=(p.ambitos||[]).map(a=>`<span>${esc(a)}</span>`).join("");
-  const e=escala(p),rev=p.img[1]?`${run(p,"Reverso")}<div class="fig"><img data-id="${esc(p.id)}" src="${imgSrc(p.img[1])}" alt="" style="width:${e.w.toFixed(1)}mm;height:${e.h.toFixed(1)}mm"></div>`:"";
+  const e=escala(p),rev=p.img[1]&&!p.reverso_oculto?`${run(p,"Reverso")}<div class="fig"><img data-id="${esc(p.id)}" src="${imgSrc(p.img[1])}" alt="" style="width:${e.w.toFixed(1)}mm;height:${e.h.toFixed(1)}mm"></div>`:"";
   return `<div class="hoja"><section class="pg izq">${holes("r")}${rev}<div class="colofon"><span>archivo.personal</span><span>Registro ${n3(p.n)}</span><span>Impreso el ${HOY}</span></div></section>
   <section class="pg der portadilla">${holes("l")}${run(p,"")}<div class="regn">${n3(p.n)}</div><h1>${esc(p.titulo)}</h1><div class="tags">${tags}</div></section><i class="pliegue"></i></div>`;
 }
