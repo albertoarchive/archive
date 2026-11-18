@@ -92,11 +92,11 @@ h2{font-weight:400;font-size:21pt;letter-spacing:-.03em;line-height:1;margin:7mm
   <label class="chk"><input type="checkbox" id="cub" checked> Cubierta</label>
   <label id="telaL" hidden>Tela de este libro<span style="display:flex;gap:6px;align-items:center"><input type="color" id="tela" style="width:34px;height:30px;padding:0;border:1px solid #141414;border-radius:7px;background:none"><button type="button" id="telaR">Restablecer</button></span></label>
   <label>Tipos<div class="tipos" id="tipos"></div></label>
-  <button class="pri" id="imp">Imprimir / guardar PDF</button>
+  <button class="pri" id="imp">Descargar PDF</button>
   <div class="info" id="info">Cargando…</div>
 </div>
 <div class="ayuda">
-  <b>Para sacar el PDF:</b> «Imprimir / guardar PDF» → destino <b>Guardar como PDF</b> · papel <b>A4 apaisado</b> · márgenes <b>Ninguno</b> · activa <b>Gráficos de fondo</b>.
+  <b>Para descargar el PDF:</b> «Descargar PDF» → en la ventana que se abre, destino <b>Guardar como PDF</b> · papel <b>A4 apaisado</b> · márgenes <b>Ninguno</b> · activa <b>Gráficos de fondo</b>.
   Si imprimes en papel a doble cara, elige <b>voltear por el borde corto</b>: cada pieza es una hoja con [4 | 1] por fuera y [2 | 3] por dentro; se dobla por la línea discontinua y los dos taladros quedan junto al pliegue para el tornillo.
 </div>
 <div id="hojas"><div id="msg">Cargando el archivo…</div></div>
@@ -240,8 +240,11 @@ function pintar(){
 async function imprimir(){
   const b=$("imp");b.disabled=true;await PALP;
   const imgs=[...document.querySelectorAll("#hojas img")];let k=0;
-  await Promise.all(imgs.map(i=>(i.complete?Promise.resolve():new Promise(r=>{i.onload=i.onerror=r})).then(()=>{b.textContent=`Cargando imágenes ${++k}/${imgs.length}`})));
-  b.disabled=false;b.textContent="Imprimir / guardar PDF";window.print();
+  await Promise.all(imgs.map(i=>(i.complete?Promise.resolve():new Promise(r=>{i.onload=i.onerror=r})).then(()=>{b.textContent=`Preparando PDF ${++k}/${imgs.length}`})));
+  b.disabled=false;b.textContent="Descargar PDF";
+  const tit=document.title,l=$("libro").value;
+  document.title="archivo-personal-cuadernillos-"+(l==="todos"?"todos":l.toLowerCase()); /* el navegador lo usa como nombre del PDF */
+  addEventListener("afterprint",()=>{document.title=tit},{once:true});window.print();
 }
 
 let TOKEN=null;try{TOKEN=localStorage.getItem("arch-token")}catch(e){}
