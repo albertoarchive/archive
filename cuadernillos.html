@@ -186,6 +186,7 @@ async function imprimir(){
 
 fetch(BASE+"data.json?t="+Date.now(),{cache:"no-store"}).then(r=>{if(!r.ok)throw 0;return r.json()}).then(d=>{
   D=d;PZ=(d.piezas||[]).filter(p=>p.img&&p.img[0]);
+  const ct={};PZ.forEach(p=>ct[p.tipo]=(ct[p.tipo]||0)+1);FAM.forEach(f=>f[1].sort((x,y)=>(ct[y]||0)-(ct[x]||0))); /* mismo orden que la web: de más a menos piezas */
   const cnt={};PZ.forEach(p=>{const f=FAM[famIdx(p.tipo)][0];cnt[f]=(cnt[f]||0)+1});
   $("libro").innerHTML=`<option value="todos">Todos los libros (${PZ.length})</option>`+FAM.map((f,i)=>`<option value="${f[0]}">${ROM[i]} · ${f[0]} (${cnt[f[0]]||0})</option>`).join("");
   const h=decodeURIComponent(location.hash.slice(1));if(h&&[...$("libro").options].some(o=>o.value===h))$("libro").value=h;
