@@ -234,6 +234,9 @@ body.entrando #main .piece{animation:aparece 1.8s ease both;animation-delay:var(
 @media (prefers-reduced-motion:reduce){body.entrando #main .piece{animation:none}.piece.aflora img{animation:none}}
 .umbral{position:fixed;inset:0;z-index:90;background:var(--bg);display:grid;place-items:center;transition:opacity 1.2s ease}
 .umbral.fuera{opacity:0;pointer-events:none}
+#u-sueno{position:fixed;inset:0;pointer-events:none;z-index:5;overflow:hidden}
+#u-sueno img{position:absolute;object-fit:contain;filter:drop-shadow(0 3px 7px rgba(0,0,0,.22));opacity:0;transform:scale(.97);transition:opacity .25s ease,transform .25s ease}
+#u-sueno img.si{opacity:1;transform:none}#u-sueno img.va{opacity:0;transition:opacity .4s ease}
 .u-in{text-align:center;display:grid;gap:18px;justify-items:center;padding:24px}
 .u-t{font-size:clamp(22px,3.4vw,38px);letter-spacing:-.02em;max-width:18ch;line-height:1.15;margin:0}
 #entrar{font:500 15px/1 var(--f-mono);letter-spacing:.06em;padding:14px 26px;border-radius:999px;background:var(--fg);color:var(--bg)}
@@ -2126,6 +2129,20 @@ function preguntar(){
 function cerrarRQ(){$("#rq").hidden=true;if(RQ.d)desaflorar(RQ.d.id);RQ.d=null;}
 setInterval(()=>{if(!$("#umbral").classList.contains("fuera"))return;const gap=(canEdit&&db)?180e3:45e3;if(Date.now()-RQ.last>gap)preguntar();},15e3);
 setInterval(refreshVivo,60e3);setInterval(()=>{if(TK.k>1){refreshVivo();tkBadge();}},700);
+
+/* ---------- Portada en reposo: si nadie mueve el ratón, van apareciendo piezas al azar (como TOT Studio) ---------- */
+const SUENO={t:0,iv:0,capa:null,ult:Date.now()};
+function suenoCapa(){if(!SUENO.capa){SUENO.capa=document.createElement("div");SUENO.capa.id="u-sueno";SUENO.capa.setAttribute("aria-hidden","true");$("#umbral").appendChild(SUENO.capa);}return SUENO.capa;}
+function suenoPieza(){const u=$("#umbral");if(!u||u.classList.contains("fuera")||!D.length){suenoParar();return;}
+  const d=D[Math.floor(Math.random()*D.length)],vw=innerWidth,vh=innerHeight,k=Math.min(vw,vh)/650; // misma escala para todas: px por mm
+  let w=W(d)*k,h=H(d)*k;const m=Math.max(w,h),lim=Math.min(vw,vh)*.7;if(m>lim){w*=lim/m;h*=lim/m;}if(Math.max(w,h)<70){const e=70/Math.max(w,h);w*=e;h*=e;}
+  const im=new Image();im.decoding="async";im.alt="";im.src=srcT(d.img[0]);
+  im.style.cssText=`width:${w}px;height:${h}px;left:${Math.random()*Math.max(0,vw-w)}px;top:${Math.random()*Math.max(0,vh-h)}px`;
+  im.onload=()=>{const c=suenoCapa();c.appendChild(im);requestAnimationFrame(()=>im.classList.add("si"));while(c.children.length>45)c.firstChild.remove();};}
+function suenoParar(){clearInterval(SUENO.iv);SUENO.iv=0;}
+function suenoDespierta(){SUENO.ult=Date.now();suenoParar();const c=SUENO.capa;if(c&&c.children.length){[...c.children].forEach(x=>x.classList.add("va"));setTimeout(()=>{[...c.children].forEach(x=>{if(x.classList.contains("va"))x.remove();});},450);}}
+["pointermove","pointerdown","keydown","wheel","touchstart","scroll"].forEach(ev=>addEventListener(ev,suenoDespierta,{passive:true,capture:true}));
+setInterval(()=>{const u=$("#umbral");if(!u||u.classList.contains("fuera")||u.hidden||SUENO.iv)return;if(Date.now()-SUENO.ult>3500){suenoPieza();SUENO.iv=setInterval(suenoPieza,650);}},500);
 
 /* ---------- Entrada ---------- */
 function entrar(){const u=$("#umbral");if(u.classList.contains("fuera"))return;AU.start();u.classList.add("fuera");u.setAttribute("aria-hidden","true");
