@@ -102,7 +102,7 @@ h2{font-weight:400;font-size:21pt;letter-spacing:-.03em;line-height:1;margin:7mm
 
 <script>
 const BASE="https://raw.githubusercontent.com/albertoarchive/archive/datos/";
-const FAM=[["Publicaciones",["Libro","Revista","Fanzine","Marcapáginas"]],["Impresos",["Postal","Tarjeta de visita","Folleto","Cartel","Foto","Orla"]],["Accesos",["Entrada","Billete","Pulsera","Pasaporte","Carnet","Lanyard"]],["Coleccionables",["Cromo","Pegatina","Goma de borrar"]],["Discos",["CD","Vinilo","Casete"]],["Ropa",["Camiseta","Sudadera","Bufanda","Gorra","Zapato","Ropa"]],["Juguetes",["Muñeco","Peluche","Nave","Lego"]],["Objetos",["Imán","Llavero","USB","Metacrilato","Chapa","Confeti","Miniatura","Premio"]]];
+const FAM=[["Publicaciones",["Libro","Revista","Fanzine","Marcapáginas"]],["Impresos",["Postal","Tarjeta de visita","Folleto","Cartel","Foto","Orla"]],["Accesos",["Entrada","Billete","Pulsera","Pasaporte","Carnet","Lanyard"]],["Coleccionables",["Cromo","Pegatina","Goma de borrar","Imán"]],["Discos",["CD","Vinilo","Casete"]],["Ropa",["Camiseta","Sudadera","Bufanda","Gorra","Zapato","Ropa"]],["Juguetes",["Muñeco","Peluche","Nave","Lego"]],["Objetos",["Llavero","USB","Metacrilato","Chapa","Confeti","Miniatura","Premio"]]];
 const ROM=['I','II','III','IV','V','VI','VII','VIII'];
 const famIdx=t=>{const i=FAM.findIndex(f=>f[1].includes(t));return i<0?FAM.length-1:i};
 const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
