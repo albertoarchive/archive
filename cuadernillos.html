@@ -46,6 +46,8 @@ body.negro{--bg:#000;--ink:#ecebe7;--mute:#86857f;--rule:#ecebe7;--line:#3a3a37;
 .colofon{position:absolute;left:10mm;right:var(--int);bottom:10mm;display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:6.4pt;letter-spacing:.08em;color:var(--mute);border-top:.2mm solid var(--line);padding-top:1.4mm;text-transform:uppercase}
 .fig{position:absolute;left:10mm;right:var(--int);top:17mm;bottom:20mm;display:flex;align-items:center;justify-content:center}
 .fig img{display:block;object-fit:contain}
+/* objetos claros: sobre papel blanco se perderían; contorno fino + sombra suave que sigue su silueta */
+.fig img.claro{filter:drop-shadow(0 0 .12mm rgba(0,0,0,.65)) drop-shadow(0 .5mm 1mm rgba(0,0,0,.2))}
 .esc{position:absolute;left:10mm;bottom:10mm;display:flex;align-items:center;gap:2.5mm;font-family:var(--f-mono);font-size:6.4pt;letter-spacing:.08em;color:var(--mute);text-transform:uppercase}
 .regla{height:1.6mm;border:.2mm solid var(--mute);border-top:0}
 h2{font-weight:400;font-size:21pt;letter-spacing:-.03em;line-height:1;margin:7mm 0 4mm}
@@ -180,7 +182,7 @@ function interior(p){
   const mt=p.memoria_t&&typeof p.memoria_t==="object"?Object.values(p.memoria_t).filter(m=>m&&m.t):[];
   const rec=mt.map(m=>`<p>${esc(m.t)}</p>`).join("");
   return `<div class="hoja"><section class="pg izq">${holes("r")}${run(p,"Anverso")}
-    <div class="fig"><img src="${imgSrc(p.img[0])}" alt="" style="width:${e.w.toFixed(1)}mm;height:${e.h.toFixed(1)}mm"></div>
+    <div class="fig"><img data-id="${esc(p.id)}" src="${imgSrc(p.img[0])}" alt="" style="width:${e.w.toFixed(1)}mm;height:${e.h.toFixed(1)}mm"></div>
     <div class="esc"><span>Escala ${e.lab}</span><span class="regla" style="width:${(50/e.s).toFixed(2)}mm"></span><span>5 cm</span></div></section>
   <section class="pg der">${holes("l")}${run(p,n3(p.n))}<h2>${esc(p.titulo)}</h2>${p.pie?`<p class="pie">${esc(p.pie)}</p>`:""}
     <table class="ficha">${tabla}</table><div class="rec"><div class="lbl">Lo que recuerdas</div>${rec||'<p class="vac">Todavía sin responder.</p>'}</div></section><i class="pliegue"></i></div>`;
@@ -215,7 +217,8 @@ function colores(){
   const th=new Set(D.thumbs||[]);
   const uno=id=>new Promise(ok=>{const p=por.get(id);if(!p||(p.colores&&p.colores.length))return ok();
     const im=new Image();im.crossOrigin="anonymous";
-    im.onload=()=>{try{const c=analyse(im);if(c)p.colores=c.pal.map(x=>x.hex);}catch(e){}
+    im.onload=()=>{try{const c=analyse(im);if(c){p.colores=c.pal.map(x=>x.hex);p._claro=c.pal.filter(x=>x.l>.82&&x.s<.25).reduce((s,x)=>s+x.p,0)>=.3;}}catch(e){}
+      document.querySelectorAll('.fig img[data-id="'+CSS.escape(id)+'"]').forEach(i=>i.classList.toggle('claro',!!p._claro));
       document.querySelectorAll('td.cols[data-id="'+CSS.escape(id)+'"]').forEach(td=>{td.innerHTML=colsHTML(p.colores)||'<span class="vac">—</span>'});ok()};
     im.onerror=()=>ok();im.src=th.has(p.img[0])?BASE+"t/"+p.img[0]+".webp":imgSrc(p.img[0]);});
   const cola=ids.slice();const w=async()=>{while(cola.length)await uno(cola.shift())};
