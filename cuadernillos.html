@@ -175,13 +175,13 @@ function interior(p){
   const lugar=[p.lugar,p.anio].filter(Boolean).join(" · ");
   const proc=[p.procedencia,p.procedencia_de].filter(Boolean).join(" · ");
   const med=(p.ancho&&p.alto?`${p.ancho} × ${p.alto} mm`:"")+(p.medida_estimada?" (estimada)":"");
-  const rows=[["N.º",n3(p.n)],["Tipo",p.tipo],["Lugar y año",lugar],["Procedencia",proc],["Anclas",(p.anclas||[]).join(", ")],["Ámbitos",(p.ambitos||[]).join(", ")],["Colores",null],["Medidas",med],["Escala",e.lab+(e.red?" · reducida (el tipo va a 1:"+e.base+")":"")]];
+  const rows=[["N.º",n3(p.n)],["Tipo",p.tipo],["Lugar y año",lugar],["Procedencia",proc],["Anclas",(p.anclas||[]).join(", ")],["Ámbitos",(p.ambitos||[]).join(", ")],["Colores",null],["Medidas",med]];
   const tabla=rows.map(([k,v])=>k==="Colores"?`<tr><th>${k}</th><td class="cols" data-id="${esc(p.id)}">${colsHTML(p.colores)||'<span class="vac">—</span>'}</td></tr>`:`<tr><th>${k}</th><td>${v?esc(v):'<span class="vac">—</span>'}</td></tr>`).join("");
   const mt=p.memoria_t&&typeof p.memoria_t==="object"?Object.values(p.memoria_t).filter(m=>m&&m.t):[];
   const rec=mt.map(m=>`<p>${esc(m.t)}</p>`).join("");
   return `<div class="hoja"><section class="pg izq">${holes("r")}${run(p,"Anverso")}
     <div class="fig"><img data-id="${esc(p.id)}" src="${imgSrc(p.img[0])}" alt="" style="width:${e.w.toFixed(1)}mm;height:${e.h.toFixed(1)}mm"></div>
-    <div class="esc"><span>Escala ${e.lab}</span><span class="regla" style="width:${(50/e.s).toFixed(2)}mm"></span><span>5 cm</span></div></section>
+    <div class="esc"><span>Escala ${e.lab}${e.red?" · reducida (el tipo va a 1:"+String(e.base).replace(".",",")+")":""}</span><span class="regla" style="width:${(50/e.s).toFixed(2)}mm"></span><span>5 cm</span></div></section>
   <section class="pg der">${holes("l")}${run(p,n3(p.n))}<h2>${esc(p.titulo)}</h2>${p.pie?`<p class="pie">${esc(p.pie)}</p>`:""}
     <table class="ficha">${tabla}</table><div class="rec"><div class="lbl">Lo que recuerdas</div>${rec||'<p class="vac">Todavía sin responder.</p>'}</div></section><i class="pliegue"></i></div>`;
 }
