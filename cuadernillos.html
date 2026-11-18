@@ -60,7 +60,7 @@ h2{font-weight:400;font-size:21pt;letter-spacing:-.03em;line-height:1;margin:7mm
 .ficha tr:first-child td{color:var(--red)}
 .vac{color:var(--mute)}
 .cols i{display:inline-block;width:3.2mm;height:3.2mm;border-radius:50%;margin-right:1.2mm;vertical-align:middle;box-shadow:inset 0 0 0 .15mm rgba(128,128,128,.55)}
-.rec{position:absolute;left:var(--int);right:10mm;bottom:10mm;font-size:7.4pt;line-height:1.35}
+.rec{position:absolute;left:10mm;right:var(--int);bottom:10mm;font-size:7.4pt;line-height:1.35}
 .rec .lbl{border-top:.3mm solid var(--rule);padding-top:1.4mm;margin-bottom:2mm;font-family:var(--f-mono);font-size:6.8pt;letter-spacing:.08em;text-transform:uppercase}
 .rec p{margin-bottom:1.5mm}
 /* cubierta: cartón gris con etiqueta y tela en la bisagra */
@@ -101,7 +101,7 @@ h2{font-weight:400;font-size:21pt;letter-spacing:-.03em;line-height:1;margin:7mm
 </div>
 <div class="ayuda">
   <b>«Descargar PDF»</b> genera el archivo y lo guarda directamente en Descargas (A4 apaisado, ~240 ppp). «Imprimir…» abre el diálogo del navegador (texto vectorial): destino <b>Guardar como PDF</b> · márgenes <b>Ninguno</b> · <b>Gráficos de fondo</b>.
-  Si imprimes en papel a doble cara, elige <b>voltear por el borde corto</b>: cada pieza es una hoja con [4 | 1] por fuera y [2 | 3] por dentro (1 anverso, 2 su reverso justo detrás, 3 ficha); se dobla por la línea discontinua y los dos taladros quedan junto al pliegue para el tornillo.
+  Si imprimes en papel a doble cara, elige <b>voltear por el borde corto</b>: cada pieza es una hoja con [4 | 1] por fuera y [2 | 3] por dentro (1 portadilla, 2 ficha, 3 anverso con su reverso justo detrás en la 4); se dobla por la línea discontinua y los dos taladros quedan junto al pliegue para el tornillo.
 </div>
 <div id="hojas"><div id="msg">Cargando el archivo…</div></div>
 
@@ -180,10 +180,10 @@ function figHTML(p,i,rot){
   return `<div class="fig"><img data-id="${esc(p.id)}" ${imgAttrs(p.img[i],e)} alt="" style="width:${e.w.toFixed(1)}mm;height:${e.h.toFixed(1)}mm"></div>`;
 }
 function exterior(p){
-  const e=escala(p);
-  return `<div class="hoja"><section class="pg izq">${holes("r")}<div class="colofon"><span>archivo.personal</span><span>Registro ${n3(p.n)}</span><span>Impreso el ${HOY}</span></div></section>
-  <section class="pg der">${holes("l")}${run(p,"Anverso")}${figHTML(p,0)}
-    <div class="esc"><span>Escala ${e.lab}${e.red?" · reducida (el tipo va a 1:"+String(e.base).replace(".",",")+")":""}</span><span class="regla" style="width:${(50/e.s).toFixed(2)}mm"></span><span>5 cm</span></div></section><i class="pliegue"></i></div>`;
+  const tags=(p.ambitos||[]).map(a=>`<span>${esc(a)}</span>`).join("");
+  const rev=p.img[1]&&!p.reverso_oculto?`${run(p,"Reverso")}${figHTML(p,1)}`:"";
+  return `<div class="hoja"><section class="pg izq">${holes("r")}${rev}<div class="colofon"><span>archivo.personal</span><span>Registro ${n3(p.n)}</span><span>Impreso el ${HOY}</span></div></section>
+  <section class="pg der portadilla">${holes("l")}${run(p,"")}<div class="regn">${n3(p.n)}</div><h1>${esc(p.titulo)}</h1><div class="tags">${tags}</div></section><i class="pliegue"></i></div>`;
 }
 function interior(p){
   const lugar=[p.lugar,p.anio].filter(Boolean).join(" · ");
@@ -193,11 +193,11 @@ function interior(p){
   const tabla=rows.map(([k,v])=>k==="Colores"?`<tr><th>${k}</th><td class="cols" data-id="${esc(p.id)}">${colsHTML(p.colores)||'<span class="vac">—</span>'}</td></tr>`:`<tr><th>${k}</th><td>${v?esc(v):'<span class="vac">—</span>'}</td></tr>`).join("");
   const mt=p.memoria_t&&typeof p.memoria_t==="object"?Object.values(p.memoria_t).filter(m=>m&&m.t):[];
   const rec=mt.map(m=>`<p>${esc(m.t)}</p>`).join("");
-  const tags=(p.ambitos||[]).map(a=>`<span>${esc(a)}</span>`).join("");
-  const rev=p.img[1]&&!p.reverso_oculto?`${run(p,"Reverso")}${figHTML(p,1)}`:"";
-  return `<div class="hoja"><section class="pg izq">${holes("r")}${rev}</section>
-  <section class="pg der ficha-pg">${holes("l")}${run(p,n3(p.n))}<div class="regn">${n3(p.n)}</div><h2>${esc(p.titulo)}</h2>${p.pie?`<p class="pie">${esc(p.pie)}</p>`:""}
-    <table class="ficha">${tabla}</table><div class="rec"><div class="lbl">Lo que recuerdas</div>${rec||'<p class="vac">Todavía sin responder.</p>'}</div></section><i class="pliegue"></i></div>`;
+  const e=escala(p);
+  return `<div class="hoja"><section class="pg izq">${holes("r")}${run(p,n3(p.n))}<h2>${esc(p.titulo)}</h2>${p.pie?`<p class="pie">${esc(p.pie)}</p>`:""}
+    <table class="ficha">${tabla}</table><div class="rec"><div class="lbl">Lo que recuerdas</div>${rec||'<p class="vac">Todavía sin responder.</p>'}</div></section>
+  <section class="pg der">${holes("l")}${run(p,"Anverso")}${figHTML(p,0)}
+    <div class="esc"><span>Escala ${e.lab}${e.red?" · reducida (el tipo va a 1:"+String(e.base).replace(".",",")+")":""}</span><span class="regla" style="width:${(50/e.s).toFixed(2)}mm"></span><span>5 cm</span></div></section><i class="pliegue"></i></div>`;
 }
 const telaDe=f=>((D.libros||{})[f]||{}).tela||"#1d1d1c";
 function cubierta(fi,tipos){
