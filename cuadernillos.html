@@ -126,7 +126,39 @@ function escala(p){
   let s=base;if(!cabe(p,s))s=PASOS.find(x=>x>base&&cabe(p,x))||Math.max(w/BW,h/BH);
   return{s,base,red:s!==base,lab:"1:"+String(+s.toFixed(2)).replace(".",","),w:w/s,h:h/s};
 }
-const imgSrc=id=>BASE+"a/"+id+"."+((D.ext||{})[id]||"webp");
+/* ---- análisis de color: el mismo que usa la web ---- */
+function rgb2hsl(r,g,b){r/=255;g/=255;b/=255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2;let h=0,s=0;
+  if(mx!==mn){const d=mx-mn;s=l>.5?d/(2-mx-mn):d/(mx+mn);h=mx===r?(g-b)/d+(g<b?6:0):mx===g?(b-r)/d+2:(r-g)/d+4;h*=60;}return [h,s,l];}
+function nameOf(h,s,l){
+  if(s<.16||l<.1||l>.94){return l>.78?"Blanco":l<.24?"Negro":"Gris";}
+  if(h>=15&&h<45&&l<.38)return "Marrón";
+  if(h<15||h>=345)return "Rojo"; if(h<42)return "Naranja"; if(h<70)return "Amarillo"; if(h<165)return "Verde";
+  if(h<255)return "Azul"; if(h<290)return "Violeta"; return "Rosa";}
+const hex2rgb=h=>{h=h.replace("#","");if(h.length===3)h=h.split("").map(c=>c+c).join("");const n=parseInt(h,16);return [n>>16&255,n>>8&255,n&255];};
+const rgb2hex=(r,g,b)=>"#"+[r,g,b].map(v=>Math.round(v).toString(16).padStart(2,"0")).join("");
+function rgb2lab(r,g,b){const f=c=>{c/=255;return c>.04045?Math.pow((c+.055)/1.055,2.4):c/12.92;};r=f(r);g=f(g);b=f(b);
+  let x=(r*.4124+g*.3576+b*.1805)/.95047,y=r*.2126+g*.7152+b*.0722,z=(r*.0193+g*.1192+b*.9505)/1.08883;
+  const t=v=>v>.008856?Math.cbrt(v):7.787*v+16/116;x=t(x);y=t(y);z=t(z);return [116*y-16,500*(x-y),200*(y-z)];}
+const dE=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);
+function analyse(img){
+  const N=64,c=document.createElement("canvas"),k=Math.min(1,N/Math.max(img.naturalWidth,img.naturalHeight));
+  c.width=Math.max(1,Math.round(img.naturalWidth*k));c.height=Math.max(1,Math.round(img.naturalHeight*k));
+  const x=c.getContext("2d",{willReadFrequently:true});x.drawImage(img,0,0,c.width,c.height);
+  const px=x.getImageData(0,0,c.width,c.height).data, pts=[];
+  for(let i=0;i<px.length;i+=4){if(px[i+3]<128)continue;pts.push([px[i],px[i+1],px[i+2],rgb2lab(px[i],px[i+1],px[i+2])]);}
+  if(!pts.length)return null;
+  // histograma fino (4 bits por canal); cada celda conserva su color medio, que es nítido
+  const hist=new Map();pts.forEach(p=>{const key=(p[0]>>4)+","+(p[1]>>4)+","+(p[2]>>4);const h=hist.get(key)||{n:0,r:0,g:0,b:0};h.n++;h.r+=p[0];h.g+=p[1];h.b+=p[2];hist.set(key,h);});
+  const bins=[...hist.values()].sort((a,b)=>b.n-a.n).map(h=>{const r=h.r/h.n,g=h.g/h.n,b=h.b/h.n;return {hex:rgb2hex(r,g,b),lab:rgb2lab(r,g,b),p:h.n/pts.length};});
+  // fusión voraz: cada celda se suma al color de la paleta más cercano, o abre uno nuevo
+  const out=[];bins.forEach(c=>{let o=null,bd=16;out.forEach(x=>{const d=dE(x.lab,c.lab);if(d<bd){bd=d;o=x;}});if(o)o.p+=c.p;else out.push({...c});});
+  pal=out.filter(c=>c.p>=.03).sort((a,b)=>b.p-a.p).slice(0,6);if(!pal.length)pal=out.sort((a,b)=>b.p-a.p).slice(0,5); /* imágenes muy variadas: ningún color llega al 3 %, se toman los más presentes */
+  // color principal: el cromático con más peso si hay suficiente color; si no, el neutro dominante
+  const info=pal.map(c=>{const [r,g,b]=hex2rgb(c.hex),[h,s2,l]=rgb2hsl(r,g,b);return {...c,h,s:s2,l,name:nameOf(h,s2,l)};});
+  const chrom=info.filter(c=>!["Blanco","Gris","Negro"].includes(c.name)),chromP=chrom.reduce((a,c)=>a+c.p,0);
+  const main=(chromP>.25?chrom.sort((a,b)=>b.p*(1+b.s)-a.p*(1+a.s))[0]:info[0])||info[0];
+  return {pal:info,name:main.name,hex:main.hex,h:main.h,s:main.s,l:main.l};}
+const imgSrc=id=>/^[0-9a-f]{32}$/.test(id)?BASE+"a/"+id+"."+((D.ext||{})[id]||"webp"):"img/"+id; /* las piezas antiguas viven en img/ de la web */
 const run=(p,pag)=>{const i=famIdx(p.tipo);return `<div class="run"><span>${ROM[i]}</span><span>${esc(FAM[i][0])}</span><span>${esc(p.tipo)}</span><span class="r">${esc(pag)}</span></div>`};
 const holes=s=>`<i class="hole ${s} h1"></i><i class="hole ${s} h2"></i>`;
 const HOY=new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit",year:"numeric"}).replace(/\//g,".");

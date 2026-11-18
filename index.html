@@ -875,7 +875,7 @@ function analyse(img){
   const bins=[...hist.values()].sort((a,b)=>b.n-a.n).map(h=>{const r=h.r/h.n,g=h.g/h.n,b=h.b/h.n;return {hex:rgb2hex(r,g,b),lab:rgb2lab(r,g,b),p:h.n/pts.length};});
   // fusión voraz: cada celda se suma al color de la paleta más cercano, o abre uno nuevo
   const out=[];bins.forEach(c=>{let o=null,bd=16;out.forEach(x=>{const d=dE(x.lab,c.lab);if(d<bd){bd=d;o=x;}});if(o)o.p+=c.p;else out.push({...c});});
-  pal=out.filter(c=>c.p>=.03).sort((a,b)=>b.p-a.p).slice(0,6);
+  pal=out.filter(c=>c.p>=.03).sort((a,b)=>b.p-a.p).slice(0,6);if(!pal.length)pal=out.sort((a,b)=>b.p-a.p).slice(0,5); /* imágenes muy variadas: ningún color llega al 3 %, se toman los más presentes */
   // color principal: el cromático con más peso si hay suficiente color; si no, el neutro dominante
   const info=pal.map(c=>{const [r,g,b]=hex2rgb(c.hex),[h,s2,l]=rgb2hsl(r,g,b);return {...c,h,s:s2,l,name:nameOf(h,s2,l)};});
   const chrom=info.filter(c=>!["Blanco","Gris","Negro"].includes(c.name)),chromP=chrom.reduce((a,c)=>a+c.p,0);
