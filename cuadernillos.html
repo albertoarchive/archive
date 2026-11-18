@@ -166,7 +166,7 @@ function seleccion(){
   const libro=$("libro").value;
   const off=new Set([...document.querySelectorAll("#tipos input:not(:checked)")].map(i=>i.value));
   return PZ.filter(p=>(libro==="todos"||FAM[famIdx(p.tipo)][0]===libro)&&!off.has(p.tipo))
-    .sort((a,b)=>famIdx(a.tipo)-famIdx(b.tipo)||FAM[famIdx(a.tipo)][1].indexOf(a.tipo)-FAM[famIdx(b.tipo)][1].indexOf(b.tipo)||a.n-b.n);
+    .sort((a,b)=>famIdx(a.tipo)-famIdx(b.tipo)||a.n-b.n);
 }
 function pintarTipos(){
   const libro=$("libro").value;
