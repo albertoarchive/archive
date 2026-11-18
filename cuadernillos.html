@@ -121,8 +121,11 @@ function escalaTipo(tp){
   const s=PASOS.find(s=>!l.length||l.filter(p=>cabe(p,s)).length/l.length>=.75)||PASOS[PASOS.length-1];
   return ESCL[tp]=s;
 }
+const AJUSTAR=new Set(["Camiseta"]); /* tipos que se ajustan a la caja pieza a pieza (si no, salen muy pequeños junto a la más grande) */
 function escala(p){
-  const w=+p.ancho||100,h=+p.alto||100,base=escalaTipo(p.tipo);
+  const w=+p.ancho||100,h=+p.alto||100;
+  if(AJUSTAR.has(p.tipo)){const s=Math.max(w/BW,h/BH,1);return{s,base:s,red:false,lab:"1:"+String(+s.toFixed(1)).replace(".",","),w:w/s,h:h/s};}
+  const base=escalaTipo(p.tipo);
   let s=base;if(!cabe(p,s))s=PASOS.find(x=>x>base&&cabe(p,x))||Math.max(w/BW,h/BH);
   return{s,base,red:s!==base,lab:"1:"+String(+s.toFixed(2)).replace(".",","),w:w/s,h:h/s};
 }
