@@ -161,6 +161,9 @@ function analyse(img){
   const chrom=info.filter(c=>!["Blanco","Gris","Negro"].includes(c.name)),chromP=chrom.reduce((a,c)=>a+c.p,0);
   const main=(chromP>.25?chrom.sort((a,b)=>b.p*(1+b.s)-a.p*(1+a.s))[0]:info[0])||info[0];
   return {pal:info,name:main.name,hex:main.hex,h:main.h,s:main.s,l:main.l};}
+let THS=new Set();
+/* En pantalla, miniaturas (carga rápida). Al descargar, solo se pasa a la imagen grande en los objetos que se imprimen a más de ~65 mm: el resto ya tiene resolución de sobra. */
+function imgAttrs(id,e){const full=imgSrc(id);if(!/^[0-9a-f]{32}$/.test(id)||!THS.has(id))return `src="${full}"`;const th=BASE+"t/"+id+".webp";return Math.max(e.w,e.h)<=65?`src="${th}"`:`src="${th}" data-full="${full}"`;}
 const imgSrc=id=>/^[0-9a-f]{32}$/.test(id)?BASE+"a/"+id+"."+((D.ext||{})[id]||"webp"):"img/"+id; /* las piezas antiguas viven en img/ de la web */
 const run=(p,pag)=>{const i=famIdx(p.tipo);return `<div class="run"><span>${ROM[i]}</span><span>${esc(FAM[i][0])}</span><span>${esc(p.tipo)}</span><span class="r">${esc(pag)}</span></div>`};
 const holes=s=>`<i class="hole ${s} h1"></i><i class="hole ${s} h2"></i>`;
@@ -170,7 +173,7 @@ const n3=n=>String(n).padStart(3,"0");
 const colsHTML=l=>Array.isArray(l)?l.map(h=>`<i style="background:${esc(h)}"></i>`).join(""):"";
 function exterior(p){
   const tags=(p.ambitos||[]).map(a=>`<span>${esc(a)}</span>`).join("");
-  const e=escala(p),rev=p.img[1]&&!p.reverso_oculto?`${run(p,"Reverso")}<div class="fig"><img data-id="${esc(p.id)}" src="${imgSrc(p.img[1])}" alt="" style="width:${e.w.toFixed(1)}mm;height:${e.h.toFixed(1)}mm"></div>`:"";
+  const e=escala(p),rev=p.img[1]&&!p.reverso_oculto?`${run(p,"Reverso")}<div class="fig"><img data-id="${esc(p.id)}" ${imgAttrs(p.img[1],e)} alt="" style="width:${e.w.toFixed(1)}mm;height:${e.h.toFixed(1)}mm"></div>`:"";
   return `<div class="hoja"><section class="pg izq">${holes("r")}${rev}<div class="colofon"><span>archivo.personal</span><span>Registro ${n3(p.n)}</span><span>Impreso el ${HOY}</span></div></section>
   <section class="pg der portadilla">${holes("l")}${run(p,"")}<div class="regn">${n3(p.n)}</div><h1>${esc(p.titulo)}</h1><div class="tags">${tags}</div></section><i class="pliegue"></i></div>`;
 }
@@ -184,7 +187,7 @@ function interior(p){
   const mt=p.memoria_t&&typeof p.memoria_t==="object"?Object.values(p.memoria_t).filter(m=>m&&m.t):[];
   const rec=mt.map(m=>`<p>${esc(m.t)}</p>`).join("");
   return `<div class="hoja"><section class="pg izq">${holes("r")}${run(p,"Anverso")}
-    <div class="fig"><img data-id="${esc(p.id)}" src="${imgSrc(p.img[0])}" alt="" style="width:${e.w.toFixed(1)}mm;height:${e.h.toFixed(1)}mm"></div>
+    <div class="fig"><img data-id="${esc(p.id)}" ${imgAttrs(p.img[0],e)} alt="" style="width:${e.w.toFixed(1)}mm;height:${e.h.toFixed(1)}mm"></div>
     <div class="esc"><span>Escala ${e.lab}${e.red?" · reducida (el tipo va a 1:"+String(e.base).replace(".",",")+")":""}</span><span class="regla" style="width:${(50/e.s).toFixed(2)}mm"></span><span>5 cm</span></div></section>
   <section class="pg der">${holes("l")}${run(p,n3(p.n))}<h2>${esc(p.titulo)}</h2>${p.pie?`<p class="pie">${esc(p.pie)}</p>`:""}
     <table class="ficha">${tabla}</table><div class="rec"><div class="lbl">Lo que recuerdas</div>${rec||'<p class="vac">Todavía sin responder.</p>'}</div></section><i class="pliegue"></i></div>`;
@@ -242,6 +245,7 @@ function pintar(){
 }
 async function imprimir(){
   const b=$("imp");b.disabled=true;await PALP;
+  document.querySelectorAll("#hojas img[data-full]").forEach(i=>{i.src=i.dataset.full;i.removeAttribute("data-full")});
   const imgs=[...document.querySelectorAll("#hojas img")];let k=0;
   await Promise.all(imgs.map(i=>(i.complete?Promise.resolve():new Promise(r=>{i.onload=i.onerror=r})).then(()=>{b.textContent=`Preparando PDF ${++k}/${imgs.length}`})));
   b.disabled=false;b.textContent="Descargar PDF";
@@ -282,7 +286,7 @@ function telaCambio(hex){
   }catch(e){}
   const r=await fetch(BASE+"data.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)throw 0;return r.json();
 })().then(d=>{
-  D=d;PZ=(d.piezas||[]).filter(p=>p.img&&p.img[0]);
+  D=d;THS=new Set(d.thumbs||[]);PZ=(d.piezas||[]).filter(p=>p.img&&p.img[0]);
   const ct={};PZ.forEach(p=>ct[p.tipo]=(ct[p.tipo]||0)+1);FAM.forEach(f=>f[1].sort((x,y)=>(ct[y]||0)-(ct[x]||0))); /* mismo orden que la web: de más a menos piezas */
   const cnt={};PZ.forEach(p=>{const f=FAM[famIdx(p.tipo)][0];cnt[f]=(cnt[f]||0)+1});
   $("libro").innerHTML=`<option value="todos">Todos los libros (${PZ.length})</option>`+FAM.map((f,i)=>`<option value="${f[0]}">${ROM[i]} · ${f[0]} (${cnt[f[0]]||0})</option>`).join("");
