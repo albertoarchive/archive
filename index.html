@@ -1211,10 +1211,14 @@ function clampP(){}
 function applyP(){const m=$("#lzin");if(m){m.style.transform=`translate(${P.x}px,${P.y}px) scale(${P.z})`;m.style.setProperty("--pz",P.z);}drawTiles();renderScalebar();auMover();clearTimeout(applyP.t);applyP.t=setTimeout(nitidez,250);}
 /* Al acercar, las piezas visibles cambian la miniatura por la imagen completa */
 /* Distancia de cada pieza visible al centro de la pantalla (0 centro … 1 esquina); si una pieza sale repetida, cuenta la más cercana */
-function posiciones(){const m=new Map();if(S.view==="mapa"||S.view==="lista")return m;const vw=innerWidth,vh=innerHeight,off=vw>860&&document.body.classList.contains("side-open")&&!document.body.classList.contains("ui-off")?320:0,cx=off+(vw-off)/2,cy=vh/2,
+function posiciones(){const m=new Map();if(S.view==="mapa"||S.view==="lista")return m;const vw=innerWidth,vh=innerHeight,off=vw>860&&document.body.classList.contains("side-open")&&!document.body.classList.contains("ui-off")?330:0,cx=off+(vw-off)/2,cy=vh/2,
   // la estructura radial es siempre la de la pantalla, con cualquier zoom: centro nítido y fuerte, bordes sordos
-  R=Math.hypot((vw-off)/2,cy);
-  document.querySelectorAll("#main .piece").forEach(p=>{const r=p.getBoundingClientRect();if(r.right<0||r.bottom<0||r.left>vw||r.top>vh)return;const d=Math.hypot(r.left+r.width/2-cx,r.top+r.height/2-cy)/R;if(d>=1)return;const id=p.dataset.id;if(!m.has(id)||d<m.get(id))m.set(id,d);});return m;}
+  R=Math.hypot((vw-off)/2,cy),areaV=(vw-off)*vh;
+  // solo cuenta lo que se ve de verdad: fuera de la pantalla o debajo del panel lateral no suena,
+  // y una pieza que asoma por el borde tampoco (tiene que verse al menos un tercio de ella)
+  document.querySelectorAll("#main .piece").forEach(p=>{const r=p.getBoundingClientRect();const l=Math.max(r.left,off),t=Math.max(r.top,0),rr=Math.min(r.right,vw),b=Math.min(r.bottom,vh);if(rr<=l||b<=t)return;
+    const a=(rr-l)*(b-t);if(a<.33*r.width*r.height&&a<.2*areaV)return;
+    const d=Math.hypot((l+rr)/2-cx,(t+b)/2-cy)/R;if(d>=1)return;const id=p.dataset.id;if(!m.has(id)||d<m.get(id))m.set(id,d);});return m;}
 let auT=0;function auMover(){if(auT)return;auT=setTimeout(()=>{auT=0;if(typeof AU!=="undefined")AU.update();},120);}
 addEventListener("scroll",auMover,{passive:true});
 /* Solo suenan (y se descargan) los sonidos de las piezas que están a la vista */
@@ -1934,9 +1938,11 @@ const AU={ctx:null,master:null,rev:null,on:true,n:new Map(),hover:null,calm:1,st
   stop(x){clearTimeout(x.t);x.want=0;if(x.s){try{x.s.stop()}catch(e){}x.s=null;}if(x.el&&!x.el.paused)x.el.pause();},
   sonando(x){return !!(x.s||(x.el&&!x.el.paused));},
   update(){if(!this.started||!this.ctx)return;const c=this.ctx,t=c.currentTime;
+    // si la pieza del hover ha salido de la pantalla (al arrastrar), deja de sonar; en la ficha («Escuchar») sigue
+    const pos0=posiciones();if(this.hover&&!pos0.has(this.hover)&&$("#ficha").hidden)this.hover=null;
     // posición de cada pieza respecto al centro de la pantalla: 0 = centro, 1 = borde
     // como mucho 6 voces a la vez: las más cercanas al centro (y la del hover)
-    const pos=posiciones(),VOCES=6,orden=filtered().filter(d=>d.sonido&&pos.has(d.id)&&d.id!==this.hover).sort((a,b)=>pos.get(a.id)-pos.get(b.id));
+    const pos=pos0,VOCES=6,orden=filtered().filter(d=>d.sonido&&pos.has(d.id)&&d.id!==this.hover).sort((a,b)=>pos.get(a.id)-pos.get(b.id));
     // círculo central: con muchas piezas a la vista (zoom muy bajo, «Todo») se estrecha para que solo unas pocas queden dentro
     const nVis=[...pos.values()].filter(r=>r<.32).length;this.rc=Math.max(.05,Math.min(.32,.32*Math.sqrt(6/Math.max(1,nVis))));
     // voces repartidas por anillos: las dos del centro y el resto, una por anillo hacia fuera (las de fuera suenan tras la pared)
