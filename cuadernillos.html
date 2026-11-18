@@ -102,28 +102,29 @@ h2{font-weight:400;font-size:21pt;letter-spacing:-.03em;line-height:1;margin:7mm
 <div id="hojas"><div id="msg">Cargando el archivo…</div></div>
 
 <script>
-const BASE="https://raw.githubusercontent.com/albertoarchive/archive/datos/";
+let BASE="https://raw.githubusercontent.com/albertoarchive/archive/datos/";
 const FAM=[["Publicaciones",["Libro","Revista","Fanzine","Marcapáginas"]],["Impresos",["Postal","Tarjeta de visita","Folleto","Cartel","Foto","Orla"]],["Accesos",["Entrada","Billete","Pulsera","Pasaporte","Carnet","Lanyard"]],["Coleccionables",["Cromo","Pegatina","Goma de borrar","Imán"]],["Discos",["CD","Vinilo","Casete"]],["Ropa",["Camiseta","Sudadera","Bufanda","Gorra","Zapato","Ropa"]],["Juguetes",["Muñeco","Peluche","Nave","Lego"]],["Objetos",["Llavero","USB","Metacrilato","Chapa","Confeti","Miniatura","Premio"]]];
 const ROM=['I','II','III','IV','V','VI','VII','VIII'];
 const famIdx=t=>{const i=FAM.findIndex(f=>f[1].includes(t));return i<0?FAM.length-1:i};
 const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const $=id=>document.getElementById(id);
 const BW=111,BH=170; /* caja del objeto en la p. 2, en mm */
-const PASOS=[1,2,3,4,5,6,8,10,15,20];
+const PASOS=[1,1.25,1.5,2,2.5,3,4,5,6,8,10,15,20];
 const cabe=(p,s)=>(+p.ancho||100)/s<=BW&&(+p.alto||100)/s<=BH;
-/* Un solo tamaño para todo el libro, para que los objetos sean proporcionales entre sí: el más grande
-   (1:1 si casi todo cabe) al que cabe el 75 % de las piezas. Las que no caben se reducen aparte y se marcan. */
+/* Una sola escala por tipo de objeto (todos los muñecos igual, todas las entradas igual…), para que sean proporcionales
+   entre sí y los pequeños no se pierdan: la más grande a la que caben al menos el 75 % de ese tipo.
+   Las piezas que no caben se reducen aparte y se marcan en la ficha. */
 const ESCL={};
-function escalaLibro(f){
-  if(ESCL[f]!=null)return ESCL[f];
-  const l=PZ.filter(p=>FAM[famIdx(p.tipo)][0]===f);
+function escalaTipo(tp){
+  if(ESCL[tp]!=null)return ESCL[tp];
+  const l=PZ.filter(p=>p.tipo===tp);
   const s=PASOS.find(s=>!l.length||l.filter(p=>cabe(p,s)).length/l.length>=.75)||PASOS[PASOS.length-1];
-  return ESCL[f]=s;
+  return ESCL[tp]=s;
 }
 function escala(p){
-  const w=+p.ancho||100,h=+p.alto||100,base=escalaLibro(FAM[famIdx(p.tipo)][0]);
+  const w=+p.ancho||100,h=+p.alto||100,base=escalaTipo(p.tipo);
   let s=base;if(!cabe(p,s))s=PASOS.find(x=>x>base&&cabe(p,x))||Math.max(w/BW,h/BH);
-  return{s,base,red:s!==base,lab:"1:"+(Number.isInteger(s)?s:Math.round(s)),w:w/s,h:h/s};
+  return{s,base,red:s!==base,lab:"1:"+String(+s.toFixed(2)).replace(".",","),w:w/s,h:h/s};
 }
 const imgSrc=id=>BASE+"a/"+id+"."+((D.ext||{})[id]||"webp");
 const run=(p,pag)=>{const i=famIdx(p.tipo);return `<div class="run"><span>${ROM[i]}</span><span>${esc(FAM[i][0])}</span><span>${esc(p.tipo)}</span><span class="r">${esc(pag)}</span></div>`};
@@ -142,7 +143,7 @@ function interior(p){
   const lugar=[p.lugar,p.anio].filter(Boolean).join(" · ");
   const proc=[p.procedencia,p.procedencia_de].filter(Boolean).join(" · ");
   const med=(p.ancho&&p.alto?`${p.ancho} × ${p.alto} mm`:"")+(p.medida_estimada?" (estimada)":"");
-  const rows=[["N.º",n3(p.n)],["Tipo",p.tipo],["Lugar y año",lugar],["Procedencia",proc],["Anclas",(p.anclas||[]).join(", ")],["Ámbitos",(p.ambitos||[]).join(", ")],["Colores",null],["Medidas",med],["Escala",e.lab+(e.red?" · reducida (el libro va a 1:"+e.base+")":"")]];
+  const rows=[["N.º",n3(p.n)],["Tipo",p.tipo],["Lugar y año",lugar],["Procedencia",proc],["Anclas",(p.anclas||[]).join(", ")],["Ámbitos",(p.ambitos||[]).join(", ")],["Colores",null],["Medidas",med],["Escala",e.lab+(e.red?" · reducida (el tipo va a 1:"+e.base+")":"")]];
   const tabla=rows.map(([k,v])=>k==="Colores"?`<tr><th>${k}</th><td class="cols" data-id="${esc(p.id)}">${colsHTML(p.colores)||'<span class="vac">—</span>'}</td></tr>`:`<tr><th>${k}</th><td>${v?esc(v):'<span class="vac">—</span>'}</td></tr>`).join("");
   const mt=p.memoria_t&&typeof p.memoria_t==="object"?Object.values(p.memoria_t).filter(m=>m&&m.t):[];
   const rec=mt.map(m=>`<p>${esc(m.t)}</p>`).join("");
@@ -230,7 +231,17 @@ function telaCambio(hex){
   document.querySelectorAll(".tela").forEach(e=>e.style.background=telaDe(f));
   clearTimeout(telaT);telaT=setTimeout(()=>{$("info").textContent="Guardando color…";guardarTela(f,hex).then(()=>{$("info").textContent="Color de tela guardado"}).catch(e=>{$("info").textContent="No se pudo guardar: "+e.message})},900);
 }
-fetch(BASE+"data.json?t="+Date.now(),{cache:"no-store"}).then(r=>{if(!r.ok)throw 0;return r.json()}).then(d=>{
+(async()=>{
+  /* lo último de la rama «datos»: por la API (sin caché) y con las imágenes por commit, para ver al momento lo que se acaba de subir */
+  const H={Accept:"application/vnd.github.raw+json",...(TOKEN?{Authorization:"Bearer "+TOKEN}:{})};
+  try{
+    const sh=await (await fetch(API+"/commits/datos",{headers:{Accept:"application/vnd.github.sha",...(TOKEN?{Authorization:"Bearer "+TOKEN}:{})},cache:"no-store"})).text();
+    if(!/^[0-9a-f]{40}$/.test(sh))throw 0;
+    const r=await fetch(API+"/contents/data.json?ref="+sh,{headers:H,cache:"no-store"});if(!r.ok)throw 0;
+    BASE="https://raw.githubusercontent.com/albertoarchive/archive/"+sh+"/";return await r.json();
+  }catch(e){}
+  const r=await fetch(BASE+"data.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)throw 0;return r.json();
+})().then(d=>{
   D=d;PZ=(d.piezas||[]).filter(p=>p.img&&p.img[0]);
   const ct={};PZ.forEach(p=>ct[p.tipo]=(ct[p.tipo]||0)+1);FAM.forEach(f=>f[1].sort((x,y)=>(ct[y]||0)-(ct[x]||0))); /* mismo orden que la web: de más a menos piezas */
   const cnt={};PZ.forEach(p=>{const f=FAM[famIdx(p.tipo)][0];cnt[f]=(cnt[f]||0)+1});
