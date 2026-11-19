@@ -189,7 +189,7 @@ function interior(p){
   const lugar=[p.lugar,p.anio].filter(Boolean).join(" · ");
   const proc=[p.procedencia,p.procedencia_de].filter(Boolean).join(" · ");
   const med=(p.ancho&&p.alto?`${p.ancho} × ${p.alto} mm`:"")+(p.medida_estimada?" (estimada)":"");
-  const rows=[["N.º",n3(p.n)],["Tipo",p.tipo],["Lugar y año",lugar],["Procedencia",proc],["Anclas",(p.anclas||[]).join(", ")],["Ámbitos",(p.ambitos||[]).join(", ")],["Colores",null],["Medidas",med]];
+  const rows=[["N.º",n3(p.n)],["Tipo",p.tipo],["Lugar y año",lugar],["Procedencia",proc],["Anclas",(p.anclas||[]).join(", ")],["Ámbitos",(p.ambitos||[]).join(", ")],["Personas",(Array.isArray(p.personas)?p.personas.filter(Boolean):[]).join(", ")],["Colores",null],["Medidas",med]];
   const tabla=rows.map(([k,v])=>k==="Colores"?`<tr><th>${k}</th><td class="cols" data-id="${esc(p.id)}">${colsHTML(p.colores)||'<span class="vac">—</span>'}</td></tr>`:`<tr><th>${k}</th><td>${v?esc(v):'<span class="vac">—</span>'}</td></tr>`).join("");
   const mt=p.memoria_t&&typeof p.memoria_t==="object"?Object.values(p.memoria_t).filter(m=>m&&m.t):[];
   const rec=mt.map(m=>`<p>${esc(m.t)}</p>`).join("");
