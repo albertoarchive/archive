@@ -110,6 +110,8 @@ let BASE="https://raw.githubusercontent.com/albertoarchive/archive/datos/";
 const FAM=[["Publicaciones",["Libro","Revista","Fanzine","Marcapáginas"]],["Impresos",["Postal","Tarjeta de visita","Folleto","Cartel","Foto","Orla"]],["Accesos",["Entrada","Billete","Pulsera","Pasaporte","Carnet","Lanyard"]],["Coleccionables",["Cromo","Pegatina","Goma de borrar","Imán"]],["Discos",["CD","Vinilo","Casete"]],["Ropa",["Camiseta","Sudadera","Bufanda","Gorra","Zapato","Ropa"]],["Juguetes",["Muñeco","Peluche","Nave","Lego"]],["Objetos",["Llavero","USB","Metacrilato","Chapa","Confeti","Miniatura","Premio"]]];
 const ROM=['I','II','III','IV','V','VI','VII','VIII'];
 const famIdx=t=>{const i=FAM.findIndex(f=>f[1].includes(t));return i<0?FAM.length-1:i};
+const lst=(a,s)=>Array.isArray(a)&&a.length?a:(s?String(s).split(/\s*,\s*/).filter(Boolean):[]);
+const AMB=p=>lst(p.ambitos,p.ambito),ANC=p=>lst(p.anclas,p.ancla);
 const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const $=id=>document.getElementById(id);
 const BW=111,BH=170; /* caja del objeto en la p. 2, en mm */
@@ -180,7 +182,7 @@ function figHTML(p,i,rot){
   return `<div class="fig"><img data-id="${esc(p.id)}" ${imgAttrs(p.img[i],e)} alt="" style="width:${e.w.toFixed(1)}mm;height:${e.h.toFixed(1)}mm"></div>`;
 }
 function exterior(p){
-  const tags=(p.ambitos||[]).map(a=>`<span>${esc(a)}</span>`).join("");
+  const tags=AMB(p).map(a=>`<span>${esc(a)}</span>`).join("");
   const rev=p.img[1]&&!p.reverso_oculto?`${run(p,"Reverso")}${figHTML(p,1)}`:"";
   return `<div class="hoja"><section class="pg izq">${holes("r")}${rev}<div class="colofon"><span>archivo.personal</span><span>Registro ${n3(p.n)}</span><span>Impreso el ${HOY}</span></div></section>
   <section class="pg der portadilla">${holes("l")}${run(p,"")}<div class="regn">${n3(p.n)}</div><h1>${esc(p.titulo)}</h1><div class="tags">${tags}</div></section><i class="pliegue"></i></div>`;
@@ -189,7 +191,7 @@ function interior(p){
   const lugar=[p.lugar,p.anio].filter(Boolean).join(" · ");
   const proc=[p.procedencia,p.procedencia_de].filter(Boolean).join(" · ");
   const med=(p.ancho&&p.alto?`${p.ancho} × ${p.alto} mm`:"")+(p.medida_estimada?" (estimada)":"");
-  const rows=[["N.º",n3(p.n)],["Tipo",p.tipo],["Lugar y año",lugar],["Procedencia",proc],["Anclas",(p.anclas||[]).join(", ")],["Ámbitos",(p.ambitos||[]).join(", ")],["Personas",(Array.isArray(p.personas)?p.personas.filter(Boolean):[]).join(", ")],["Colores",null],["Medidas",med]];
+  const rows=[["N.º",n3(p.n)],["Tipo",p.tipo],["Lugar y año",lugar],["Procedencia",proc],["Anclas",ANC(p).join(", ")],["Ámbitos",AMB(p).join(", ")],["Personas",(Array.isArray(p.personas)?p.personas.filter(Boolean):[]).join(", ")],["Colores",null],["Medidas",med]];
   const tabla=rows.map(([k,v])=>k==="Colores"?`<tr><th>${k}</th><td class="cols" data-id="${esc(p.id)}">${colsHTML(p.colores)||'<span class="vac">—</span>'}</td></tr>`:`<tr><th>${k}</th><td>${v?esc(v):'<span class="vac">—</span>'}</td></tr>`).join("");
   const mt=p.memoria_t&&typeof p.memoria_t==="object"?Object.values(p.memoria_t).filter(m=>m&&m.t):[];
   const rec=mt.map(m=>`<p>${esc(m.t)}</p>`).join("");
