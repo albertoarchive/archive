@@ -302,6 +302,7 @@ td.name{font-weight:500;font-size:14px}
 .year .mono{color:var(--muted)}
 .year .hito{margin:12px 0 16px;color:var(--muted);text-wrap:pretty}
 .ygrid{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
+.ygrid .piece{height:auto!important} /* si la pieza no cabe en la columna, encoge entera, sin deformarse */
 
 /* Ficha */
 .ficha{position:fixed;inset:0;z-index:40;background:var(--bg);display:grid;grid-template-columns:minmax(0,1.5fr) minmax(320px,1fr);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -971,7 +972,7 @@ function renderFilters(){
 
 const ADEL=new Map();function adel(d){if(!ADEL.has(d.id))ADEL.set(d.id,((1-viva(d))*7+Math.random()*1.4).toFixed(2));return ADEL.get(d.id);}
 function pieceHTML(d,k,cap=true){
-  return `<button class="piece" data-id="${esc(d.id)}" style="--ad:${adel(d)}s;width:${(W(d)*k).toFixed(1)}px;height:${(H(d)*k).toFixed(1)}px" aria-label="${esc(d.titulo)}, ${esc(d.tipo)}, ${MW(d)} por ${H(d)} milímetros"><img src="${srcT(d.img[0])}" alt="" loading="lazy" draggable="false" data-px="${(Math.min(W(d),H(d))*k).toFixed(0)}" style="${fx(d,Math.min(W(d),H(d))*k)}">${cap?`<span class="cap mono">${esc(d.tipo)} · ${esc(d.titulo)} · ${MW(d)}×${H(d)} mm</span>`:""}</button>`;
+  return `<button class="piece" data-id="${esc(d.id)}" style="--ad:${adel(d)}s;width:${(W(d)*k).toFixed(1)}px;height:${(H(d)*k).toFixed(1)}px;aspect-ratio:${W(d)}/${H(d)}" aria-label="${esc(d.titulo)}, ${esc(d.tipo)}, ${MW(d)} por ${H(d)} milímetros"><img src="${srcT(d.img[0])}" alt="" loading="lazy" draggable="false" data-px="${(Math.min(W(d),H(d))*k).toFixed(0)}" style="${fx(d,Math.min(W(d),H(d))*k)}">${cap?`<span class="cap mono">${esc(d.tipo)} · ${esc(d.titulo)} · ${MW(d)}×${H(d)} mm</span>`:""}</button>`;
 }
 /* ---------- Memoria: desvanecimiento según cuánto se recuerda ---------- */
 /* Preguntas de memoria: propias de cada tipo de objeto + algunas generales.
